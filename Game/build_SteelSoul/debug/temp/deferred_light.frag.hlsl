@@ -1,28 +1,20 @@
-TextureCube<float4> shadowMapPoint[1] : register(t0);
-SamplerComparisonState _shadowMapPoint_sampler[1] : register(s0);
-uniform float2 lightProj;
-Texture2D<float4> gbuffer0 : register(t1);
-SamplerState _gbuffer0_sampler : register(s1);
-Texture2D<float4> gbuffer1 : register(t2);
-SamplerState _gbuffer1_sampler : register(s2);
-Texture2D<float4> gbufferD : register(t3);
-SamplerState _gbufferD_sampler : register(s3);
+Texture2D<float4> gbuffer0 : register(t0);
+SamplerState _gbuffer0_sampler : register(s0);
+Texture2D<float4> gbuffer1 : register(t1);
+SamplerState _gbuffer1_sampler : register(s1);
+Texture2D<float4> gbufferD : register(t2);
+SamplerState _gbufferD_sampler : register(s2);
 uniform float3 eye;
 uniform float3 eyeLook;
 uniform float2 cameraProj;
-Texture2D<float4> senvmapBrdf : register(t4);
-SamplerState _senvmapBrdf_sampler : register(s4);
 uniform float4 shirr[7];
-uniform int envmapNumMipmaps;
-Texture2D<float4> senvmapRadiance : register(t5);
-SamplerState _senvmapRadiance_sampler : register(s5);
 uniform float envmapStrength;
-Texture2D<float4> ssaotex : register(t6);
-SamplerState _ssaotex_sampler : register(s6);
-uniform float3 pointPos;
-uniform float3 pointCol;
-uniform float pointBias;
-uniform float4 casData[20];
+uniform float3 sunDir;
+uniform float3 sunCol;
+uniform float2 cameraPlane;
+Texture2D<float4> clustersData : register(t3);
+SamplerState _clustersData_sampler : register(s3);
+uniform float4 lightsArray[12];
 
 static float2 texCoord;
 static float3 viewRay;
@@ -88,18 +80,6 @@ float3 shIrradiance(float3 nor, float4 shirr_1[7])
     return ((((((((((cl22 * 0.429042994976043701171875f) * ((nor.y * nor.y) - ((-nor.z) * (-nor.z)))) + (((cl20 * 0.743125021457672119140625f) * nor.x) * nor.x)) + (cl00 * 0.88622701168060302734375f)) - (cl20 * 0.2477079927921295166015625f)) + (((cl2m2 * 0.85808598995208740234375f) * nor.y) * (-nor.z))) + (((cl21 * 0.85808598995208740234375f) * nor.y) * nor.x)) + (((cl2m1 * 0.85808598995208740234375f) * (-nor.z)) * nor.x)) + ((cl11 * 1.02332794666290283203125f) * nor.y)) + ((cl1m1 * 1.02332794666290283203125f) * (-nor.z))) + ((cl10 * 1.02332794666290283203125f) * nor.x);
 }
 
-float getMipFromRoughness(float roughness, float numMipmaps)
-{
-    return roughness * numMipmaps;
-}
-
-float2 envMapEquirect(float3 normal)
-{
-    float phi = acos(normal.z);
-    float theta = atan2(-normal.y, normal.x) + 3.1415927410125732421875f;
-    return float2(theta / 6.283185482025146484375f, phi / 3.1415927410125732421875f);
-}
-
 float3 lambertDiffuseBRDF(float3 albedo, float nl)
 {
     return albedo * nl;
@@ -129,48 +109,36 @@ float3 specularBRDF(float3 f0, float roughness, float nl, float nh, float nv, fl
     return (f_schlick(f0, vh) * (d_ggx(nh, a) * g2_approx(nl, nv, a))) / max(4.0f * nv, 9.9999997473787516355514526367188e-06f).xxx;
 }
 
+float linearize(float depth, float2 cameraProj_1)
+{
+    return cameraProj_1.y / (depth - cameraProj_1.x);
+}
+
+int getClusterI(float2 tc, float viewz, float2 cameraPlane_1)
+{
+    int sliceZ = 0;
+    float cnear = 3.0f + cameraPlane_1.x;
+    if (viewz >= cnear)
+    {
+        float z = log((viewz - cnear) + 1.0f) / log((cameraPlane_1.y - cnear) + 1.0f);
+        sliceZ = int(z * 15.0f) + 1;
+    }
+    else
+    {
+        if (viewz >= cameraPlane_1.x)
+        {
+            sliceZ = 1;
+        }
+    }
+    return (int(tc.x * 16.0f) + int(float(int(tc.y * 16.0f)) * 16.0f)) + int((float(sliceZ) * 16.0f) * 16.0f);
+}
+
 float attenuate(float dist)
 {
     return 1.0f / (dist * dist);
 }
 
-float lpToDepth(inout float3 lp, float2 lightProj_1)
-{
-    lp = abs(lp);
-    float zcomp = max(lp.x, max(lp.y, lp.z));
-    zcomp = lightProj_1.x - (lightProj_1.y / zcomp);
-    return (zcomp * 0.5f) + 0.5f;
-}
-
-float PCFCube(TextureCube<float4> shadowMapCube, SamplerComparisonState _shadowMapCube_sampler, float3 lp, inout float3 ml, float bias, float2 lightProj_1, float3 n)
-{
-    float3 param = lp;
-    float _439 = lpToDepth(param, lightProj_1);
-    float compare = _439 - (bias * 1.5f);
-    ml += ((n * bias) * 20.0f);
-    ml.y = -ml.y;
-    float4 _459 = float4(ml, compare);
-    float result = shadowMapCube.SampleCmp(_shadowMapCube_sampler, _459.xyz, _459.w);
-    float4 _471 = float4(ml + 0.001000000047497451305389404296875f.xxx, compare);
-    result += shadowMapCube.SampleCmp(_shadowMapCube_sampler, _471.xyz, _471.w);
-    float4 _485 = float4(ml + float3(-0.001000000047497451305389404296875f, 0.001000000047497451305389404296875f, 0.001000000047497451305389404296875f), compare);
-    result += shadowMapCube.SampleCmp(_shadowMapCube_sampler, _485.xyz, _485.w);
-    float4 _498 = float4(ml + float3(0.001000000047497451305389404296875f, -0.001000000047497451305389404296875f, 0.001000000047497451305389404296875f), compare);
-    result += shadowMapCube.SampleCmp(_shadowMapCube_sampler, _498.xyz, _498.w);
-    float4 _511 = float4(ml + float3(0.001000000047497451305389404296875f, 0.001000000047497451305389404296875f, -0.001000000047497451305389404296875f), compare);
-    result += shadowMapCube.SampleCmp(_shadowMapCube_sampler, _511.xyz, _511.w);
-    float4 _524 = float4(ml + float3(-0.001000000047497451305389404296875f, -0.001000000047497451305389404296875f, 0.001000000047497451305389404296875f), compare);
-    result += shadowMapCube.SampleCmp(_shadowMapCube_sampler, _524.xyz, _524.w);
-    float4 _537 = float4(ml + float3(0.001000000047497451305389404296875f, -0.001000000047497451305389404296875f, -0.001000000047497451305389404296875f), compare);
-    result += shadowMapCube.SampleCmp(_shadowMapCube_sampler, _537.xyz, _537.w);
-    float4 _550 = float4(ml + float3(-0.001000000047497451305389404296875f, 0.001000000047497451305389404296875f, -0.001000000047497451305389404296875f), compare);
-    result += shadowMapCube.SampleCmp(_shadowMapCube_sampler, _550.xyz, _550.w);
-    float4 _563 = float4(ml + (-0.001000000047497451305389404296875f).xxx, compare);
-    result += shadowMapCube.SampleCmp(_shadowMapCube_sampler, _563.xyz, _563.w);
-    return result / 9.0f;
-}
-
-float3 sampleLight(float3 p, float3 n, float3 v, float dotNV, float3 lp, float3 lightCol, float3 albedo, float rough, float spec, float3 f0, int index, float bias, bool receiveShadow)
+float3 sampleLight(float3 p, float3 n, float3 v, float dotNV, float3 lp, float3 lightCol, float3 albedo, float rough, float spec, float3 f0)
 {
     float3 ld = lp - p;
     float3 l = normalize(ld);
@@ -181,12 +149,6 @@ float3 sampleLight(float3 p, float3 n, float3 v, float dotNV, float3 lp, float3 
     float3 direct = lambertDiffuseBRDF(albedo, dotNL) + (specularBRDF(f0, rough, dotNL, dotNH, dotNV, dotVH) * spec);
     direct *= attenuate(distance(p, lp));
     direct *= lightCol;
-    if (receiveShadow)
-    {
-        float3 param = -l;
-        float _624 = PCFCube(shadowMapPoint[0], _shadowMapPoint_sampler[0], ld, param, bias, lightProj, n);
-        direct *= _624;
-    }
     return direct;
 }
 
@@ -195,16 +157,16 @@ void frag_main()
     float4 g0 = gbuffer0.SampleLevel(_gbuffer0_sampler, texCoord, 0.0f);
     float3 n;
     n.z = (1.0f - abs(g0.x)) - abs(g0.y);
-    float2 _654;
+    float2 _505;
     if (n.z >= 0.0f)
     {
-        _654 = g0.xy;
+        _505 = g0.xy;
     }
     else
     {
-        _654 = octahedronWrap(g0.xy);
+        _505 = octahedronWrap(g0.xy);
     }
-    n = float3(_654.x, _654.y, n.z);
+    n = float3(_505.x, _505.y, n.z);
     n = normalize(n);
     float roughness = g0.z;
     float param;
@@ -220,23 +182,32 @@ void frag_main()
     float3 p = getPos(eye, eyeLook, normalize(viewRay), depth, cameraProj);
     float3 v = normalize(eye - p);
     float dotNV = max(dot(n, v), 0.0f);
-    float2 envBRDF = senvmapBrdf.Load(int3(int2(float2(dotNV, 1.0f - roughness) * 256.0f), 0)).xy;
     float3 envl = shIrradiance(n, shirr);
-    float3 reflectionWorld = reflect(-v, n);
-    float lod = getMipFromRoughness(roughness, float(envmapNumMipmaps));
-    float3 prefilteredColor = senvmapRadiance.SampleLevel(_senvmapRadiance_sampler, envMapEquirect(reflectionWorld), lod).xyz;
     envl *= albedo;
-    envl *= (1.0f.xxx - ((f0 * envBRDF.x) + envBRDF.y.xxx));
-    envl += (prefilteredColor * ((f0 * envBRDF.x) + envBRDF.y.xxx));
     envl *= (envmapStrength * occspec.x);
     fragColor = float4(envl.x, envl.y, envl.z, fragColor.w);
-    float3 _818 = fragColor.xyz * ssaotex.SampleLevel(_ssaotex_sampler, texCoord, 0.0f).x;
-    fragColor = float4(_818.x, _818.y, _818.z, fragColor.w);
-    int param_2 = 0;
-    float param_3 = pointBias;
-    bool param_4 = true;
-    float3 _843 = fragColor.xyz + sampleLight(p, n, v, dotNV, pointPos, pointCol, albedo, roughness, occspec.y, f0, param_2, param_3, param_4);
-    fragColor = float4(_843.x, _843.y, _843.z, fragColor.w);
+    float3 sh = normalize(v + sunDir);
+    float sdotNH = max(0.0f, dot(n, sh));
+    float sdotVH = max(0.0f, dot(v, sh));
+    float sdotNL = max(0.0f, dot(n, sunDir));
+    float svisibility = 1.0f;
+    float3 sdirect = lambertDiffuseBRDF(albedo, sdotNL) + (specularBRDF(f0, roughness, sdotNL, sdotNH, dotNV, sdotVH) * occspec.y);
+    float3 _650 = fragColor.xyz + ((sdirect * svisibility) * sunCol);
+    fragColor = float4(_650.x, _650.y, _650.z, fragColor.w);
+    float2 param_2 = cameraProj;
+    float viewz = linearize((depth * 0.5f) + 0.5f, param_2);
+    float2 param_3 = texCoord;
+    float param_4 = viewz;
+    float2 param_5 = cameraPlane;
+    int clusterI = getClusterI(param_3, param_4, param_5);
+    int numLights = int(clustersData.Load(int3(int2(clusterI, 0), 0)).x * 255.0f);
+    viewz += (clustersData.SampleLevel(_clustersData_sampler, 0.0f.xx, 0.0f).x * 9.999999717180685365747194737196e-10f);
+    for (int i = 0; i < min(numLights, 4); i++)
+    {
+        int li = int(clustersData.Load(int3(int2(clusterI, i + 1), 0)).x * 255.0f);
+        float3 _736 = fragColor.xyz + sampleLight(p, n, v, dotNV, lightsArray[li * 3].xyz, lightsArray[(li * 3) + 1].xyz, albedo, roughness, occspec.y, f0);
+        fragColor = float4(_736.x, _736.y, _736.z, fragColor.w);
+    }
     fragColor.w = 1.0f;
 }
 

@@ -74,8 +74,6 @@ Lambda.__name__ = "Lambda";
 class Main {
 	static main() {
 		iron_object_BoneAnimation.skinMaxBones = 33;
-		iron_object_LightObject.cascadeCount = 4;
-		iron_object_LightObject.cascadeSplitFactor = 0.800000011920929;
 		armory_system_Starter.main("GameScene",0,false,true,false,1920,1080,1,true,armory_renderpath_RenderPathCreator.get);
 	}
 }
@@ -567,9 +565,16 @@ class arm_PlayerController extends iron_Trait {
 		if(iron_system_Input.occupied || !this.body.ready) {
 			return;
 		}
-		let mouse = iron_system_Input.getMouse();
-		this.camera.transform.rotate(this.xVec,mouse.movementY / 250);
-		this.transform.rotate(this.zVec,-mouse.movementX / 250);
+		let mo = iron_system_Input.getMouse();
+		let kb = iron_system_Input.getKeyboard();
+		if(mo.down() && !mo.locked) {
+			mo.lock();
+		}
+		if(kb.down(iron_system_Keyboard.keyCode(27))) {
+			mo.unlock();
+		}
+		this.camera.transform.rotate(this.zVec,-mo.movementY / 250);
+		this.transform.rotate(this.zVec,-mo.movementX / 250);
 		this.body.syncTransform();
 	}
 }
@@ -1420,9 +1425,6 @@ class armory_renderpath_Inc {
 			} else {
 				let sizew = armory_renderpath_Inc.path.light.data.raw.shadowmap_size;
 				let sizeh = sizew;
-				if(l.data.raw.type == "sun") {
-					sizew *= iron_object_LightObject.cascadeCount;
-				}
 				let t = new iron_RenderTargetRaw();
 				t.name = target;
 				t.width = sizew;
@@ -1434,47 +1436,14 @@ class armory_renderpath_Inc {
 		return target;
 	}
 	static drawShadowMap() {
-		armory_renderpath_Inc.pointIndex = 0;
-		armory_renderpath_Inc.spotIndex = 0;
-		let _g = 0;
-		let _g1 = iron_Scene.active.lights;
-		while(_g < _g1.length) {
-			let l = _g1[_g];
-			++_g;
-			if(!l.visible) {
-				continue;
-			}
-			armory_renderpath_Inc.path.light = l;
-			let shadowmap = armory_renderpath_Inc.getShadowMap(l);
-			let faces = l.data.raw.shadowmap_cube ? 6 : 1;
-			let _g2 = 0;
-			let _g3 = faces;
-			while(_g2 < _g3) {
-				let i = _g2++;
-				if(faces > 1) {
-					armory_renderpath_Inc.path.currentFace = i;
-				}
-				armory_renderpath_Inc.path.setTarget(shadowmap);
-				armory_renderpath_Inc.path.clearTarget(null,1.0);
-				if(l.data.raw.cast_shadow) {
-					armory_renderpath_Inc.path.drawMeshes("shadowmap");
-				}
-			}
-			armory_renderpath_Inc.path.currentFace = -1;
-			if(l.data.raw.type == "point") {
-				armory_renderpath_Inc.pointIndex++;
-			} else if(l.data.raw.type == "spot" || l.data.raw.type == "area") {
-				armory_renderpath_Inc.spotIndex++;
-			}
-		}
 	}
 	static applyConfig() {
 	}
 	static getCubeSize() {
-		return 512;
+		return 0;
 	}
 	static getCascadeSize() {
-		return 1024;
+		return 0;
 	}
 	static getVoxelRes() {
 		return 0;
@@ -2277,78 +2246,19 @@ class armory_renderpath_RenderPathDeferred {
 		t3.scale = armory_renderpath_Inc.superSample;
 		armory_renderpath_RenderPathDeferred.path.createRenderTarget(t3);
 		armory_renderpath_RenderPathDeferred.path.loadShader("shader_datas/deferred_light/deferred_light");
-		armory_renderpath_RenderPathDeferred.path.loadShader("shader_datas/ssao_pass/ssao_pass");
-		armory_renderpath_RenderPathDeferred.path.loadShader("shader_datas/blur_edge_pass/blur_edge_pass_x");
-		armory_renderpath_RenderPathDeferred.path.loadShader("shader_datas/blur_edge_pass/blur_edge_pass_y");
-		let t4 = new iron_RenderTargetRaw();
-		t4.name = "singlea";
-		t4.width = 0;
-		t4.height = 0;
-		t4.displayp = null;
-		t4.format = "R8";
-		t4.scale = armory_renderpath_Inc.superSample;
-		armory_renderpath_RenderPathDeferred.path.createRenderTarget(t4);
-		let t5 = new iron_RenderTargetRaw();
-		t5.name = "singleb";
-		t5.width = 0;
-		t5.height = 0;
-		t5.displayp = null;
-		t5.format = "R8";
-		t5.scale = armory_renderpath_Inc.superSample;
-		armory_renderpath_RenderPathDeferred.path.createRenderTarget(t5);
-		let t6 = new iron_RenderTargetRaw();
-		t6.name = "bufa";
-		t6.width = 0;
-		t6.height = 0;
-		t6.displayp = null;
-		t6.format = "RGBA32";
-		t6.scale = armory_renderpath_Inc.superSample;
-		armory_renderpath_RenderPathDeferred.path.createRenderTarget(t6);
-		let t7 = new iron_RenderTargetRaw();
-		t7.name = "bufb";
-		t7.width = 0;
-		t7.height = 0;
-		t7.displayp = null;
-		t7.format = "RGBA32";
-		t7.scale = armory_renderpath_Inc.superSample;
-		armory_renderpath_RenderPathDeferred.path.createRenderTarget(t7);
-		armory_renderpath_RenderPathDeferred.path.loadShader("shader_datas/compositor_pass/compositor_pass");
-		armory_renderpath_RenderPathDeferred.path.loadShader("shader_datas/smaa_edge_detect/smaa_edge_detect");
-		armory_renderpath_RenderPathDeferred.path.loadShader("shader_datas/smaa_blend_weight/smaa_blend_weight");
-		armory_renderpath_RenderPathDeferred.path.loadShader("shader_datas/smaa_neighborhood_blend/smaa_neighborhood_blend");
+		armory_renderpath_RenderPathDeferred.path.loadShader("shader_datas/copy_pass/copy_pass");
 	}
 	static commands() {
 		armory_renderpath_RenderPathDeferred.path.setTarget("gbuffer0");
 		armory_renderpath_RenderPathDeferred.path.clearTarget(null,1.0);
 		armory_renderpath_RenderPathCreator.setTargetMeshes();
 		armory_renderpath_RenderPathCreator.drawMeshes();
-		if(armory_data_Config.raw.rp_ssgi != false) {
-			armory_renderpath_RenderPathDeferred.path.setTarget("singlea");
-			armory_renderpath_RenderPathDeferred.path.bindTarget("_main","gbufferD");
-			armory_renderpath_RenderPathDeferred.path.bindTarget("gbuffer0","gbuffer0");
-			armory_renderpath_RenderPathDeferred.path.drawShader("shader_datas/ssao_pass/ssao_pass");
-			armory_renderpath_RenderPathDeferred.path.setTarget("singleb");
-			armory_renderpath_RenderPathDeferred.path.bindTarget("singlea","tex");
-			armory_renderpath_RenderPathDeferred.path.bindTarget("gbuffer0","gbuffer0");
-			armory_renderpath_RenderPathDeferred.path.drawShader("shader_datas/blur_edge_pass/blur_edge_pass_x");
-			armory_renderpath_RenderPathDeferred.path.setTarget("singlea");
-			armory_renderpath_RenderPathDeferred.path.bindTarget("singleb","tex");
-			armory_renderpath_RenderPathDeferred.path.bindTarget("gbuffer0","gbuffer0");
-			armory_renderpath_RenderPathDeferred.path.drawShader("shader_datas/blur_edge_pass/blur_edge_pass_y");
-		}
-		armory_renderpath_Inc.drawShadowMap();
 		armory_renderpath_RenderPathDeferred.path.setDepthFrom("tex","gbuffer1");
 		armory_renderpath_RenderPathDeferred.path.setTarget("tex");
 		armory_renderpath_RenderPathDeferred.path.bindTarget("_main","gbufferD");
 		armory_renderpath_RenderPathDeferred.path.bindTarget("gbuffer0","gbuffer0");
 		armory_renderpath_RenderPathDeferred.path.bindTarget("gbuffer1","gbuffer1");
-		if(armory_data_Config.raw.rp_ssgi != false) {
-			armory_renderpath_RenderPathDeferred.path.bindTarget("singlea","ssaotex");
-		} else {
-			armory_renderpath_RenderPathDeferred.path.bindTarget("empty_white","ssaotex");
-		}
 		let voxelao_pass = false;
-		armory_renderpath_Inc.bindShadowMap();
 		if(voxelao_pass) {
 			armory_renderpath_RenderPathDeferred.path.drawShader("shader_datas/deferred_light/deferred_light_VoxelAOvar");
 		} else {
@@ -2362,27 +2272,10 @@ class armory_renderpath_RenderPathDeferred {
 		let framebuffer = "";
 		armory_renderpath_RenderPathCreator.finalTarget = armory_renderpath_RenderPathDeferred.path.currentTarget;
 		let target = "";
-		target = "buf";
+		target = framebuffer;
 		armory_renderpath_RenderPathDeferred.path.setTarget(target);
 		armory_renderpath_RenderPathDeferred.path.bindTarget("tex","tex");
-		let isProbe = false;
-		if(!isProbe) {
-			armory_renderpath_RenderPathDeferred.path.drawShader("shader_datas/compositor_pass/compositor_pass");
-		} else {
-			armory_renderpath_RenderPathDeferred.path.drawShader("shader_datas/copy_pass/copy_pass");
-		}
-		armory_renderpath_RenderPathDeferred.path.setTarget("bufa");
-		armory_renderpath_RenderPathDeferred.path.clearTarget(0);
-		armory_renderpath_RenderPathDeferred.path.bindTarget("buf","colorTex");
-		armory_renderpath_RenderPathDeferred.path.drawShader("shader_datas/smaa_edge_detect/smaa_edge_detect");
-		armory_renderpath_RenderPathDeferred.path.setTarget("bufb");
-		armory_renderpath_RenderPathDeferred.path.clearTarget(0);
-		armory_renderpath_RenderPathDeferred.path.bindTarget("bufa","edgesTex");
-		armory_renderpath_RenderPathDeferred.path.drawShader("shader_datas/smaa_blend_weight/smaa_blend_weight");
-		armory_renderpath_RenderPathDeferred.path.setTarget(framebuffer);
-		armory_renderpath_RenderPathDeferred.path.bindTarget("buf","colorTex");
-		armory_renderpath_RenderPathDeferred.path.bindTarget("bufb","blendTex");
-		armory_renderpath_RenderPathDeferred.path.drawShader("shader_datas/smaa_neighborhood_blend/smaa_neighborhood_blend");
+		armory_renderpath_RenderPathDeferred.path.drawShader("shader_datas/copy_pass/copy_pass");
 	}
 	static setupDepthTexture() {
 		armory_renderpath_RenderPathDeferred.path.setDepthFrom("gbuffer0","gbuffer1");
@@ -14658,17 +14551,8 @@ class iron_RenderPath {
 			this.light.setCubeFace(this.currentFace,iron_Scene.active.camera);
 		}
 		let drawn = false;
-		if(isShadows && this.light.data.raw.type == "sun") {
-			let step = this.currentH;
-			let _g = 0;
-			let _g1 = iron_object_LightObject.cascadeCount;
-			while(_g < _g1) {
-				let i = _g++;
-				this.light.setCascade(iron_Scene.active.camera,i);
-				this.currentG.viewport(i * step,0,step,step);
-				this.submitDraw(context);
-			}
-			drawn = true;
+		if(context == "mesh") {
+			iron_object_LightObject.updateClusters(iron_Scene.active.camera);
 		}
 		if(!drawn) {
 			this.submitDraw(context);
@@ -22957,26 +22841,20 @@ class iron_object_LightObject extends iron_object_Object {
 		this.VP = new iron_math_Mat4(1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0);
 		this.P = null;
 		this.V = new iron_math_Mat4(1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0);
-		this.bias = new iron_math_Mat4(1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0);
-		this.camSlicedP = null;
-		this.cascadeData = null;
 		super._hx_constructor();
 		this.data = data;
 		let type = data.raw.type;
 		let fov = data.raw.fov;
 		if(type == "sun") {
-			if(iron_object_LightObject.corners == null) {
-				iron_object_LightObject.corners = [];
-				iron_object_LightObject.corners.push(new iron_math_Vec4());
-				iron_object_LightObject.corners.push(new iron_math_Vec4());
-				iron_object_LightObject.corners.push(new iron_math_Vec4());
-				iron_object_LightObject.corners.push(new iron_math_Vec4());
-				iron_object_LightObject.corners.push(new iron_math_Vec4());
-				iron_object_LightObject.corners.push(new iron_math_Vec4());
-				iron_object_LightObject.corners.push(new iron_math_Vec4());
-				iron_object_LightObject.corners.push(new iron_math_Vec4());
-			}
-			this.P = new iron_math_Mat4(1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0);
+			let near = data.raw.near_plane;
+			let far = data.raw.far_plane;
+			let rl = 2;
+			let tb = 2;
+			let fn = far - near;
+			let tx = 0 / rl;
+			let ty = 0 / tb;
+			let tz = -(far + near) / fn;
+			this.P = new iron_math_Mat4(2 / rl,0,0,tx,0,2 / tb,0,ty,0,0,-2 / fn,tz,0,0,0,1);
 		} else if(type == "point" || type == "area") {
 			let zn = data.raw.near_plane;
 			let zf = data.raw.far_plane;
@@ -23149,515 +23027,6 @@ class iron_object_LightObject extends iron_object_Object {
 			this.updateViewFrustum(camera);
 		}
 	}
-	setCascade(camera,cascade) {
-		let _this = iron_object_LightObject.m;
-		let m = camera.V;
-		_this.self._00 = m.self._00;
-		_this.self._01 = m.self._01;
-		_this.self._02 = m.self._02;
-		_this.self._03 = m.self._03;
-		_this.self._10 = m.self._10;
-		_this.self._11 = m.self._11;
-		_this.self._12 = m.self._12;
-		_this.self._13 = m.self._13;
-		_this.self._20 = m.self._20;
-		_this.self._21 = m.self._21;
-		_this.self._22 = m.self._22;
-		_this.self._23 = m.self._23;
-		_this.self._30 = m.self._30;
-		_this.self._31 = m.self._31;
-		_this.self._32 = m.self._32;
-		_this.self._33 = m.self._33;
-		if(this.camSlicedP == null) {
-			this.camSlicedP = [];
-			this.cascadeSplit = [];
-			let ortho = camera.data.raw.ortho;
-			if(ortho == null) {
-				let aspect = camera.data.raw.aspect != null ? camera.data.raw.aspect : iron_App.w() / iron_App.h();
-				let fov = camera.data.raw.fov;
-				let near = camera.data.raw.near_plane;
-				let far = camera.data.raw.far_plane;
-				let factor = iron_object_LightObject.cascadeCount > 2 ? iron_object_LightObject.cascadeSplitFactor : iron_object_LightObject.cascadeSplitFactor * 0.25;
-				let _g = 0;
-				let _g1 = iron_object_LightObject.cascadeCount;
-				while(_g < _g1) {
-					let i = _g++;
-					let f = i + 1.0;
-					let cfar = (near + f / iron_object_LightObject.cascadeCount * (far - near)) * (1 - factor) + near * Math.pow(far / near,f / iron_object_LightObject.cascadeCount) * factor;
-					this.cascadeSplit.push(cfar);
-					let uh = 1.0 / Math.tan(fov / 2);
-					let uw = uh / aspect;
-					this.camSlicedP.push(new iron_math_Mat4(uw,0,0,0,0,uh,0,0,0,0,(cfar + near) / (near - cfar),2 * cfar * near / (near - cfar),0,0,-1,0));
-				}
-			} else {
-				let _g = 0;
-				let _g1 = iron_object_LightObject.cascadeCount;
-				while(_g < _g1) {
-					let i = _g++;
-					this.cascadeSplit.push(this.data.raw.far_plane);
-					let left = ortho.getFloat32(0,kha_arrays_ByteArray.LITTLE_ENDIAN);
-					let right = ortho.getFloat32(4,kha_arrays_ByteArray.LITTLE_ENDIAN);
-					let bottom = ortho.getFloat32(8,kha_arrays_ByteArray.LITTLE_ENDIAN);
-					let top = ortho.getFloat32(12,kha_arrays_ByteArray.LITTLE_ENDIAN);
-					let near = this.data.raw.near_plane;
-					let far = this.data.raw.far_plane;
-					let rl = right - left;
-					let tb = top - bottom;
-					let fn = far - near;
-					let tx = -(right + left) / rl;
-					let ty = -(top + bottom) / tb;
-					let tz = -(far + near) / fn;
-					this.camSlicedP.push(new iron_math_Mat4(2 / rl,0,0,tx,0,2 / tb,0,ty,0,0,-2 / fn,tz,0,0,0,1));
-				}
-			}
-		}
-		let _this1 = iron_object_LightObject.m;
-		let m1 = this.camSlicedP[cascade];
-		let a00 = _this1.self._00;
-		let a01 = _this1.self._01;
-		let a02 = _this1.self._02;
-		let a03 = _this1.self._03;
-		let a10 = _this1.self._10;
-		let a11 = _this1.self._11;
-		let a12 = _this1.self._12;
-		let a13 = _this1.self._13;
-		let a20 = _this1.self._20;
-		let a21 = _this1.self._21;
-		let a22 = _this1.self._22;
-		let a23 = _this1.self._23;
-		let a30 = _this1.self._30;
-		let a31 = _this1.self._31;
-		let a32 = _this1.self._32;
-		let a33 = _this1.self._33;
-		let b0 = m1.self._00;
-		let b1 = m1.self._10;
-		let b2 = m1.self._20;
-		let b3 = m1.self._30;
-		_this1.self._00 = a00 * b0 + a01 * b1 + a02 * b2 + a03 * b3;
-		_this1.self._10 = a10 * b0 + a11 * b1 + a12 * b2 + a13 * b3;
-		_this1.self._20 = a20 * b0 + a21 * b1 + a22 * b2 + a23 * b3;
-		_this1.self._30 = a30 * b0 + a31 * b1 + a32 * b2 + a33 * b3;
-		b0 = m1.self._01;
-		b1 = m1.self._11;
-		b2 = m1.self._21;
-		b3 = m1.self._31;
-		_this1.self._01 = a00 * b0 + a01 * b1 + a02 * b2 + a03 * b3;
-		_this1.self._11 = a10 * b0 + a11 * b1 + a12 * b2 + a13 * b3;
-		_this1.self._21 = a20 * b0 + a21 * b1 + a22 * b2 + a23 * b3;
-		_this1.self._31 = a30 * b0 + a31 * b1 + a32 * b2 + a33 * b3;
-		b0 = m1.self._02;
-		b1 = m1.self._12;
-		b2 = m1.self._22;
-		b3 = m1.self._32;
-		_this1.self._02 = a00 * b0 + a01 * b1 + a02 * b2 + a03 * b3;
-		_this1.self._12 = a10 * b0 + a11 * b1 + a12 * b2 + a13 * b3;
-		_this1.self._22 = a20 * b0 + a21 * b1 + a22 * b2 + a23 * b3;
-		_this1.self._32 = a30 * b0 + a31 * b1 + a32 * b2 + a33 * b3;
-		b0 = m1.self._03;
-		b1 = m1.self._13;
-		b2 = m1.self._23;
-		b3 = m1.self._33;
-		_this1.self._03 = a00 * b0 + a01 * b1 + a02 * b2 + a03 * b3;
-		_this1.self._13 = a10 * b0 + a11 * b1 + a12 * b2 + a13 * b3;
-		_this1.self._23 = a20 * b0 + a21 * b1 + a22 * b2 + a23 * b3;
-		_this1.self._33 = a30 * b0 + a31 * b1 + a32 * b2 + a33 * b3;
-		let _this2 = iron_object_LightObject.m;
-		let m2 = iron_object_LightObject.m;
-		let a001 = m2.self._00;
-		let a011 = m2.self._01;
-		let a021 = m2.self._02;
-		let a031 = m2.self._03;
-		let a101 = m2.self._10;
-		let a111 = m2.self._11;
-		let a121 = m2.self._12;
-		let a131 = m2.self._13;
-		let a201 = m2.self._20;
-		let a211 = m2.self._21;
-		let a221 = m2.self._22;
-		let a231 = m2.self._23;
-		let a301 = m2.self._30;
-		let a311 = m2.self._31;
-		let a321 = m2.self._32;
-		let a331 = m2.self._33;
-		let b00 = a001 * a111 - a011 * a101;
-		let b01 = a001 * a121 - a021 * a101;
-		let b02 = a001 * a131 - a031 * a101;
-		let b03 = a011 * a121 - a021 * a111;
-		let b04 = a011 * a131 - a031 * a111;
-		let b05 = a021 * a131 - a031 * a121;
-		let b06 = a201 * a311 - a211 * a301;
-		let b07 = a201 * a321 - a221 * a301;
-		let b08 = a201 * a331 - a231 * a301;
-		let b09 = a211 * a321 - a221 * a311;
-		let b10 = a211 * a331 - a231 * a311;
-		let b11 = a221 * a331 - a231 * a321;
-		let det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
-		if(det == 0.0) {
-			_this2.self._00 = 1.0;
-			_this2.self._01 = 0.0;
-			_this2.self._02 = 0.0;
-			_this2.self._03 = 0.0;
-			_this2.self._10 = 0.0;
-			_this2.self._11 = 1.0;
-			_this2.self._12 = 0.0;
-			_this2.self._13 = 0.0;
-			_this2.self._20 = 0.0;
-			_this2.self._21 = 0.0;
-			_this2.self._22 = 1.0;
-			_this2.self._23 = 0.0;
-			_this2.self._30 = 0.0;
-			_this2.self._31 = 0.0;
-			_this2.self._32 = 0.0;
-			_this2.self._33 = 1.0;
-		} else {
-			det = 1.0 / det;
-			_this2.self._00 = (a111 * b11 - a121 * b10 + a131 * b09) * det;
-			_this2.self._01 = (a021 * b10 - a011 * b11 - a031 * b09) * det;
-			_this2.self._02 = (a311 * b05 - a321 * b04 + a331 * b03) * det;
-			_this2.self._03 = (a221 * b04 - a211 * b05 - a231 * b03) * det;
-			_this2.self._10 = (a121 * b08 - a101 * b11 - a131 * b07) * det;
-			_this2.self._11 = (a001 * b11 - a021 * b08 + a031 * b07) * det;
-			_this2.self._12 = (a321 * b02 - a301 * b05 - a331 * b01) * det;
-			_this2.self._13 = (a201 * b05 - a221 * b02 + a231 * b01) * det;
-			_this2.self._20 = (a101 * b10 - a111 * b08 + a131 * b06) * det;
-			_this2.self._21 = (a011 * b08 - a001 * b10 - a031 * b06) * det;
-			_this2.self._22 = (a301 * b04 - a311 * b02 + a331 * b00) * det;
-			_this2.self._23 = (a211 * b02 - a201 * b04 - a231 * b00) * det;
-			_this2.self._30 = (a111 * b07 - a101 * b09 - a121 * b06) * det;
-			_this2.self._31 = (a001 * b09 - a011 * b07 + a021 * b06) * det;
-			_this2.self._32 = (a311 * b01 - a301 * b03 - a321 * b00) * det;
-			_this2.self._33 = (a201 * b03 - a211 * b01 + a221 * b00) * det;
-		}
-		let _this3 = this.V;
-		let m3 = this.transform.world;
-		let a002 = m3.self._00;
-		let a012 = m3.self._01;
-		let a022 = m3.self._02;
-		let a032 = m3.self._03;
-		let a102 = m3.self._10;
-		let a112 = m3.self._11;
-		let a122 = m3.self._12;
-		let a132 = m3.self._13;
-		let a202 = m3.self._20;
-		let a212 = m3.self._21;
-		let a222 = m3.self._22;
-		let a232 = m3.self._23;
-		let a302 = m3.self._30;
-		let a312 = m3.self._31;
-		let a322 = m3.self._32;
-		let a332 = m3.self._33;
-		let b001 = a002 * a112 - a012 * a102;
-		let b011 = a002 * a122 - a022 * a102;
-		let b021 = a002 * a132 - a032 * a102;
-		let b031 = a012 * a122 - a022 * a112;
-		let b041 = a012 * a132 - a032 * a112;
-		let b051 = a022 * a132 - a032 * a122;
-		let b061 = a202 * a312 - a212 * a302;
-		let b071 = a202 * a322 - a222 * a302;
-		let b081 = a202 * a332 - a232 * a302;
-		let b091 = a212 * a322 - a222 * a312;
-		let b101 = a212 * a332 - a232 * a312;
-		let b111 = a222 * a332 - a232 * a322;
-		let det1 = b001 * b111 - b011 * b101 + b021 * b091 + b031 * b081 - b041 * b071 + b051 * b061;
-		if(det1 == 0.0) {
-			_this3.self._00 = 1.0;
-			_this3.self._01 = 0.0;
-			_this3.self._02 = 0.0;
-			_this3.self._03 = 0.0;
-			_this3.self._10 = 0.0;
-			_this3.self._11 = 1.0;
-			_this3.self._12 = 0.0;
-			_this3.self._13 = 0.0;
-			_this3.self._20 = 0.0;
-			_this3.self._21 = 0.0;
-			_this3.self._22 = 1.0;
-			_this3.self._23 = 0.0;
-			_this3.self._30 = 0.0;
-			_this3.self._31 = 0.0;
-			_this3.self._32 = 0.0;
-			_this3.self._33 = 1.0;
-		} else {
-			det1 = 1.0 / det1;
-			_this3.self._00 = (a112 * b111 - a122 * b101 + a132 * b091) * det1;
-			_this3.self._01 = (a022 * b101 - a012 * b111 - a032 * b091) * det1;
-			_this3.self._02 = (a312 * b051 - a322 * b041 + a332 * b031) * det1;
-			_this3.self._03 = (a222 * b041 - a212 * b051 - a232 * b031) * det1;
-			_this3.self._10 = (a122 * b081 - a102 * b111 - a132 * b071) * det1;
-			_this3.self._11 = (a002 * b111 - a022 * b081 + a032 * b071) * det1;
-			_this3.self._12 = (a322 * b021 - a302 * b051 - a332 * b011) * det1;
-			_this3.self._13 = (a202 * b051 - a222 * b021 + a232 * b011) * det1;
-			_this3.self._20 = (a102 * b101 - a112 * b081 + a132 * b061) * det1;
-			_this3.self._21 = (a012 * b081 - a002 * b101 - a032 * b061) * det1;
-			_this3.self._22 = (a302 * b041 - a312 * b021 + a332 * b001) * det1;
-			_this3.self._23 = (a212 * b021 - a202 * b041 - a232 * b001) * det1;
-			_this3.self._30 = (a112 * b071 - a102 * b091 - a122 * b061) * det1;
-			_this3.self._31 = (a002 * b091 - a012 * b071 + a022 * b061) * det1;
-			_this3.self._32 = (a312 * b011 - a302 * b031 - a322 * b001) * det1;
-			_this3.self._33 = (a202 * b031 - a212 * b011 + a222 * b001) * det1;
-		}
-		let _this4 = this.V;
-		let _this5 = iron_math_Mat4.helpVec;
-		_this5.x = _this4.self._00;
-		_this5.y = _this4.self._01;
-		_this5.z = _this4.self._02;
-		_this5.w = 1.0;
-		let _this6 = _this5;
-		let scale = 1.0 / Math.sqrt(_this6.x * _this6.x + _this6.y * _this6.y + _this6.z * _this6.z);
-		_this4.self._00 *= scale;
-		_this4.self._01 *= scale;
-		_this4.self._02 *= scale;
-		let _this7 = iron_math_Mat4.helpVec;
-		_this7.x = _this4.self._10;
-		_this7.y = _this4.self._11;
-		_this7.z = _this4.self._12;
-		_this7.w = 1.0;
-		let _this8 = _this7;
-		scale = 1.0 / Math.sqrt(_this8.x * _this8.x + _this8.y * _this8.y + _this8.z * _this8.z);
-		_this4.self._10 *= scale;
-		_this4.self._11 *= scale;
-		_this4.self._12 *= scale;
-		let _this9 = iron_math_Mat4.helpVec;
-		_this9.x = _this4.self._20;
-		_this9.y = _this4.self._21;
-		_this9.z = _this4.self._22;
-		_this9.w = 1.0;
-		let _this10 = _this9;
-		scale = 1.0 / Math.sqrt(_this10.x * _this10.x + _this10.y * _this10.y + _this10.z * _this10.z);
-		_this4.self._20 *= scale;
-		_this4.self._21 *= scale;
-		_this4.self._22 *= scale;
-		_this4.self._03 = 0.0;
-		_this4.self._13 = 0.0;
-		_this4.self._23 = 0.0;
-		_this4.self._30 = 0.0;
-		_this4.self._31 = 0.0;
-		_this4.self._32 = 0.0;
-		_this4.self._33 = 1.0;
-		let _this11 = iron_object_LightObject.m;
-		let m4 = this.V;
-		let a003 = _this11.self._00;
-		let a013 = _this11.self._01;
-		let a023 = _this11.self._02;
-		let a033 = _this11.self._03;
-		let a103 = _this11.self._10;
-		let a113 = _this11.self._11;
-		let a123 = _this11.self._12;
-		let a133 = _this11.self._13;
-		let a203 = _this11.self._20;
-		let a213 = _this11.self._21;
-		let a223 = _this11.self._22;
-		let a233 = _this11.self._23;
-		let a303 = _this11.self._30;
-		let a313 = _this11.self._31;
-		let a323 = _this11.self._32;
-		let a333 = _this11.self._33;
-		let b010 = m4.self._00;
-		let b12 = m4.self._10;
-		let b21 = m4.self._20;
-		let b31 = m4.self._30;
-		_this11.self._00 = a003 * b010 + a013 * b12 + a023 * b21 + a033 * b31;
-		_this11.self._10 = a103 * b010 + a113 * b12 + a123 * b21 + a133 * b31;
-		_this11.self._20 = a203 * b010 + a213 * b12 + a223 * b21 + a233 * b31;
-		_this11.self._30 = a303 * b010 + a313 * b12 + a323 * b21 + a333 * b31;
-		b010 = m4.self._01;
-		b12 = m4.self._11;
-		b21 = m4.self._21;
-		b31 = m4.self._31;
-		_this11.self._01 = a003 * b010 + a013 * b12 + a023 * b21 + a033 * b31;
-		_this11.self._11 = a103 * b010 + a113 * b12 + a123 * b21 + a133 * b31;
-		_this11.self._21 = a203 * b010 + a213 * b12 + a223 * b21 + a233 * b31;
-		_this11.self._31 = a303 * b010 + a313 * b12 + a323 * b21 + a333 * b31;
-		b010 = m4.self._02;
-		b12 = m4.self._12;
-		b21 = m4.self._22;
-		b31 = m4.self._32;
-		_this11.self._02 = a003 * b010 + a013 * b12 + a023 * b21 + a033 * b31;
-		_this11.self._12 = a103 * b010 + a113 * b12 + a123 * b21 + a133 * b31;
-		_this11.self._22 = a203 * b010 + a213 * b12 + a223 * b21 + a233 * b31;
-		_this11.self._32 = a303 * b010 + a313 * b12 + a323 * b21 + a333 * b31;
-		b010 = m4.self._03;
-		b12 = m4.self._13;
-		b21 = m4.self._23;
-		b31 = m4.self._33;
-		_this11.self._03 = a003 * b010 + a013 * b12 + a023 * b21 + a033 * b31;
-		_this11.self._13 = a103 * b010 + a113 * b12 + a123 * b21 + a133 * b31;
-		_this11.self._23 = a203 * b010 + a213 * b12 + a223 * b21 + a233 * b31;
-		_this11.self._33 = a303 * b010 + a313 * b12 + a323 * b21 + a333 * b31;
-		let _this12 = iron_object_LightObject.corners[0];
-		_this12.x = -1.0;
-		_this12.y = -1.0;
-		_this12.z = 1.0;
-		_this12.w = 1.0;
-		let _this13 = iron_object_LightObject.corners[1];
-		_this13.x = -1.0;
-		_this13.y = -1.0;
-		_this13.z = -1.0;
-		_this13.w = 1.0;
-		let _this14 = iron_object_LightObject.corners[2];
-		_this14.x = -1.0;
-		_this14.y = 1.0;
-		_this14.z = 1.0;
-		_this14.w = 1.0;
-		let _this15 = iron_object_LightObject.corners[3];
-		_this15.x = -1.0;
-		_this15.y = 1.0;
-		_this15.z = -1.0;
-		_this15.w = 1.0;
-		let _this16 = iron_object_LightObject.corners[4];
-		_this16.x = 1.0;
-		_this16.y = -1.0;
-		_this16.z = 1.0;
-		_this16.w = 1.0;
-		let _this17 = iron_object_LightObject.corners[5];
-		_this17.x = 1.0;
-		_this17.y = -1.0;
-		_this17.z = -1.0;
-		_this17.w = 1.0;
-		let _this18 = iron_object_LightObject.corners[6];
-		_this18.x = 1.0;
-		_this18.y = 1.0;
-		_this18.z = 1.0;
-		_this18.w = 1.0;
-		let _this19 = iron_object_LightObject.corners[7];
-		_this19.x = 1.0;
-		_this19.y = 1.0;
-		_this19.z = -1.0;
-		_this19.w = 1.0;
-		let _g = 0;
-		let _g1 = iron_object_LightObject.corners;
-		while(_g < _g1.length) {
-			let v = _g1[_g];
-			++_g;
-			let m = iron_object_LightObject.m;
-			let x = v.x;
-			let y = v.y;
-			let z = v.z;
-			let w = v.w;
-			v.x = m.self._00 * x + m.self._10 * y + m.self._20 * z + m.self._30 * w;
-			v.y = m.self._01 * x + m.self._11 * y + m.self._21 * z + m.self._31 * w;
-			v.z = m.self._02 * x + m.self._12 * y + m.self._22 * z + m.self._32 * w;
-			v.w = m.self._03 * x + m.self._13 * y + m.self._23 * z + m.self._33 * w;
-			v.x /= v.w;
-			v.y /= v.w;
-			v.z /= v.w;
-			v.w = 1.0;
-		}
-		let minx = iron_object_LightObject.corners[0].x;
-		let miny = iron_object_LightObject.corners[0].y;
-		let minz = iron_object_LightObject.corners[0].z;
-		let maxx = iron_object_LightObject.corners[0].x;
-		let maxy = iron_object_LightObject.corners[0].y;
-		let maxz = iron_object_LightObject.corners[0].z;
-		let _g2 = 0;
-		let _g3 = iron_object_LightObject.corners;
-		while(_g2 < _g3.length) {
-			let v = _g3[_g2];
-			++_g2;
-			if(v.x < minx) {
-				minx = v.x;
-			}
-			if(v.x > maxx) {
-				maxx = v.x;
-			}
-			if(v.y < miny) {
-				miny = v.y;
-			}
-			if(v.y > maxy) {
-				maxy = v.y;
-			}
-			if(v.z < minz) {
-				minz = v.z;
-			}
-			if(v.z > maxz) {
-				maxz = v.z;
-			}
-		}
-		let v1 = iron_object_LightObject.corners[0];
-		let v2 = iron_object_LightObject.corners[7];
-		let vx = v1.x - v2.x;
-		let vy = v1.y - v2.y;
-		let vz = v1.z - v2.z;
-		let diag0 = Math.sqrt(vx * vx + vy * vy + vz * vz);
-		let offx = (diag0 - (maxx - minx)) * 0.5;
-		let offy = (diag0 - (maxy - miny)) * 0.5;
-		minx -= offx;
-		maxx += offx;
-		miny -= offy;
-		maxy += offy;
-		let smsize = this.data.raw.shadowmap_size;
-		smsize = smsize / 4 | 0;
-		let worldPerTexelX = (maxx - minx) / smsize;
-		let worldPerTexelY = (maxy - miny) / smsize;
-		let worldPerTexelZ = (maxz - minz) / smsize;
-		minx = Math.floor(minx / worldPerTexelX) * worldPerTexelX;
-		miny = Math.floor(miny / worldPerTexelY) * worldPerTexelY;
-		minz = Math.floor(minz / worldPerTexelZ) * worldPerTexelZ;
-		maxx = Math.floor(maxx / worldPerTexelX) * worldPerTexelX;
-		maxy = Math.floor(maxy / worldPerTexelY) * worldPerTexelY;
-		maxz = Math.floor(maxz / worldPerTexelZ) * worldPerTexelZ;
-		let hx = (maxx - minx) / 2;
-		let hy = (maxy - miny) / 2;
-		let hz = (maxz - minz) / 2;
-		this.V.self._30 = -(minx + hx);
-		this.V.self._31 = -(miny + hy);
-		this.V.self._32 = -(minz + hz);
-		let left = -hx;
-		let bottom = -hy;
-		let near = -hz * 4 * iron_object_LightObject.cascadeBounds;
-		let rl = hx - left;
-		let tb = hy - bottom;
-		let fn = hz - near;
-		let tx = -(hx + left) / rl;
-		let ty = -(hy + bottom) / tb;
-		let tz = -(hz + near) / fn;
-		iron_object_LightObject.m = new iron_math_Mat4(2 / rl,0,0,tx,0,2 / tb,0,ty,0,0,-2 / fn,tz,0,0,0,1);
-		let _this20 = this.P;
-		let m5 = iron_object_LightObject.m;
-		_this20.self._00 = m5.self._00;
-		_this20.self._01 = m5.self._01;
-		_this20.self._02 = m5.self._02;
-		_this20.self._03 = m5.self._03;
-		_this20.self._10 = m5.self._10;
-		_this20.self._11 = m5.self._11;
-		_this20.self._12 = m5.self._12;
-		_this20.self._13 = m5.self._13;
-		_this20.self._20 = m5.self._20;
-		_this20.self._21 = m5.self._21;
-		_this20.self._22 = m5.self._22;
-		_this20.self._23 = m5.self._23;
-		_this20.self._30 = m5.self._30;
-		_this20.self._31 = m5.self._31;
-		_this20.self._32 = m5.self._32;
-		_this20.self._33 = m5.self._33;
-		this.updateViewFrustum(camera);
-		if(this.cascadeVP == null) {
-			this.cascadeVP = [];
-			let _g = 0;
-			let _g1 = iron_object_LightObject.cascadeCount;
-			while(_g < _g1) {
-				let i = _g++;
-				this.cascadeVP.push(new iron_math_Mat4(1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0));
-			}
-		}
-		let _this21 = this.cascadeVP[cascade];
-		let m6 = this.VP;
-		_this21.self._00 = m6.self._00;
-		_this21.self._01 = m6.self._01;
-		_this21.self._02 = m6.self._02;
-		_this21.self._03 = m6.self._03;
-		_this21.self._10 = m6.self._10;
-		_this21.self._11 = m6.self._11;
-		_this21.self._12 = m6.self._12;
-		_this21.self._13 = m6.self._13;
-		_this21.self._20 = m6.self._20;
-		_this21.self._21 = m6.self._21;
-		_this21.self._22 = m6.self._22;
-		_this21.self._23 = m6.self._23;
-		_this21.self._30 = m6.self._30;
-		_this21.self._31 = m6.self._31;
-		_this21.self._32 = m6.self._32;
-		_this21.self._33 = m6.self._33;
-	}
 	updateViewFrustum(camera) {
 		let _this = this.VP;
 		let b = this.P;
@@ -23733,149 +23102,6 @@ class iron_object_LightObject extends iron_object_Object {
 		iron_object_CameraObject.setCubeFace(this.V,iron_object_LightObject.eye,face,flip);
 		this.updateViewFrustum(camera);
 	}
-	getCascadeData() {
-		if(this.cascadeData == null) {
-			this.cascadeData = kha_arrays_Float32Array._new(iron_object_LightObject.cascadeCount * 16 + 4);
-		}
-		if(this.cascadeVP == null) {
-			return this.cascadeData;
-		}
-		let _g = 0;
-		let _g1 = iron_object_LightObject.cascadeCount;
-		while(_g < _g1) {
-			let i = _g++;
-			let _this = iron_object_LightObject.m;
-			let m = this.cascadeVP[i];
-			_this.self._00 = m.self._00;
-			_this.self._01 = m.self._01;
-			_this.self._02 = m.self._02;
-			_this.self._03 = m.self._03;
-			_this.self._10 = m.self._10;
-			_this.self._11 = m.self._11;
-			_this.self._12 = m.self._12;
-			_this.self._13 = m.self._13;
-			_this.self._20 = m.self._20;
-			_this.self._21 = m.self._21;
-			_this.self._22 = m.self._22;
-			_this.self._23 = m.self._23;
-			_this.self._30 = m.self._30;
-			_this.self._31 = m.self._31;
-			_this.self._32 = m.self._32;
-			_this.self._33 = m.self._33;
-			let _this1 = this.bias;
-			let m1 = iron_object_Uniforms.biasMat;
-			_this1.self._00 = m1.self._00;
-			_this1.self._01 = m1.self._01;
-			_this1.self._02 = m1.self._02;
-			_this1.self._03 = m1.self._03;
-			_this1.self._10 = m1.self._10;
-			_this1.self._11 = m1.self._11;
-			_this1.self._12 = m1.self._12;
-			_this1.self._13 = m1.self._13;
-			_this1.self._20 = m1.self._20;
-			_this1.self._21 = m1.self._21;
-			_this1.self._22 = m1.self._22;
-			_this1.self._23 = m1.self._23;
-			_this1.self._30 = m1.self._30;
-			_this1.self._31 = m1.self._31;
-			_this1.self._32 = m1.self._32;
-			_this1.self._33 = m1.self._33;
-			this.bias.self._00 /= iron_object_LightObject.cascadeCount;
-			this.bias.self._30 /= iron_object_LightObject.cascadeCount;
-			this.bias.self._30 += i * (1 / iron_object_LightObject.cascadeCount);
-			let _this2 = iron_object_LightObject.m;
-			let m2 = this.bias;
-			let a00 = _this2.self._00;
-			let a01 = _this2.self._01;
-			let a02 = _this2.self._02;
-			let a03 = _this2.self._03;
-			let a10 = _this2.self._10;
-			let a11 = _this2.self._11;
-			let a12 = _this2.self._12;
-			let a13 = _this2.self._13;
-			let a20 = _this2.self._20;
-			let a21 = _this2.self._21;
-			let a22 = _this2.self._22;
-			let a23 = _this2.self._23;
-			let a30 = _this2.self._30;
-			let a31 = _this2.self._31;
-			let a32 = _this2.self._32;
-			let a33 = _this2.self._33;
-			let b0 = m2.self._00;
-			let b1 = m2.self._10;
-			let b2 = m2.self._20;
-			let b3 = m2.self._30;
-			_this2.self._00 = a00 * b0 + a01 * b1 + a02 * b2 + a03 * b3;
-			_this2.self._10 = a10 * b0 + a11 * b1 + a12 * b2 + a13 * b3;
-			_this2.self._20 = a20 * b0 + a21 * b1 + a22 * b2 + a23 * b3;
-			_this2.self._30 = a30 * b0 + a31 * b1 + a32 * b2 + a33 * b3;
-			b0 = m2.self._01;
-			b1 = m2.self._11;
-			b2 = m2.self._21;
-			b3 = m2.self._31;
-			_this2.self._01 = a00 * b0 + a01 * b1 + a02 * b2 + a03 * b3;
-			_this2.self._11 = a10 * b0 + a11 * b1 + a12 * b2 + a13 * b3;
-			_this2.self._21 = a20 * b0 + a21 * b1 + a22 * b2 + a23 * b3;
-			_this2.self._31 = a30 * b0 + a31 * b1 + a32 * b2 + a33 * b3;
-			b0 = m2.self._02;
-			b1 = m2.self._12;
-			b2 = m2.self._22;
-			b3 = m2.self._32;
-			_this2.self._02 = a00 * b0 + a01 * b1 + a02 * b2 + a03 * b3;
-			_this2.self._12 = a10 * b0 + a11 * b1 + a12 * b2 + a13 * b3;
-			_this2.self._22 = a20 * b0 + a21 * b1 + a22 * b2 + a23 * b3;
-			_this2.self._32 = a30 * b0 + a31 * b1 + a32 * b2 + a33 * b3;
-			b0 = m2.self._03;
-			b1 = m2.self._13;
-			b2 = m2.self._23;
-			b3 = m2.self._33;
-			_this2.self._03 = a00 * b0 + a01 * b1 + a02 * b2 + a03 * b3;
-			_this2.self._13 = a10 * b0 + a11 * b1 + a12 * b2 + a13 * b3;
-			_this2.self._23 = a20 * b0 + a21 * b1 + a22 * b2 + a23 * b3;
-			_this2.self._33 = a30 * b0 + a31 * b1 + a32 * b2 + a33 * b3;
-			let v = iron_object_LightObject.m.self._00;
-			this.cascadeData.setFloat32(i * 16 * 4,v,true);
-			let v1 = iron_object_LightObject.m.self._01;
-			this.cascadeData.setFloat32((i * 16 + 1) * 4,v1,true);
-			let v2 = iron_object_LightObject.m.self._02;
-			this.cascadeData.setFloat32((i * 16 + 2) * 4,v2,true);
-			let v3 = iron_object_LightObject.m.self._03;
-			this.cascadeData.setFloat32((i * 16 + 3) * 4,v3,true);
-			let v4 = iron_object_LightObject.m.self._10;
-			this.cascadeData.setFloat32((i * 16 + 4) * 4,v4,true);
-			let v5 = iron_object_LightObject.m.self._11;
-			this.cascadeData.setFloat32((i * 16 + 5) * 4,v5,true);
-			let v6 = iron_object_LightObject.m.self._12;
-			this.cascadeData.setFloat32((i * 16 + 6) * 4,v6,true);
-			let v7 = iron_object_LightObject.m.self._13;
-			this.cascadeData.setFloat32((i * 16 + 7) * 4,v7,true);
-			let v8 = iron_object_LightObject.m.self._20;
-			this.cascadeData.setFloat32((i * 16 + 8) * 4,v8,true);
-			let v9 = iron_object_LightObject.m.self._21;
-			this.cascadeData.setFloat32((i * 16 + 9) * 4,v9,true);
-			let v10 = iron_object_LightObject.m.self._22;
-			this.cascadeData.setFloat32((i * 16 + 10) * 4,v10,true);
-			let v11 = iron_object_LightObject.m.self._23;
-			this.cascadeData.setFloat32((i * 16 + 11) * 4,v11,true);
-			let v12 = iron_object_LightObject.m.self._30;
-			this.cascadeData.setFloat32((i * 16 + 12) * 4,v12,true);
-			let v13 = iron_object_LightObject.m.self._31;
-			this.cascadeData.setFloat32((i * 16 + 13) * 4,v13,true);
-			let v14 = iron_object_LightObject.m.self._32;
-			this.cascadeData.setFloat32((i * 16 + 14) * 4,v14,true);
-			let v15 = iron_object_LightObject.m.self._33;
-			this.cascadeData.setFloat32((i * 16 + 15) * 4,v15,true);
-		}
-		let v = this.cascadeSplit[0];
-		this.cascadeData.setFloat32(iron_object_LightObject.cascadeCount * 16 * 4,v,true);
-		let v1 = this.cascadeSplit[1];
-		this.cascadeData.setFloat32((iron_object_LightObject.cascadeCount * 16 + 1) * 4,v1,true);
-		let v2 = this.cascadeSplit[2];
-		this.cascadeData.setFloat32((iron_object_LightObject.cascadeCount * 16 + 2) * 4,v2,true);
-		let v3 = this.cascadeSplit[3];
-		this.cascadeData.setFloat32((iron_object_LightObject.cascadeCount * 16 + 3) * 4,v3,true);
-		return this.cascadeData;
-	}
 	right() {
 		return new iron_math_Vec4(this.V.self._00,this.V.self._10,this.V.self._20);
 	}
@@ -23885,50 +23111,336 @@ class iron_object_LightObject extends iron_object_Object {
 	look() {
 		return new iron_math_Vec4(this.V.self._02,this.V.self._12,this.V.self._22);
 	}
-	static setCorners() {
-		let _this = iron_object_LightObject.corners[0];
-		_this.x = -1.0;
-		_this.y = -1.0;
-		_this.z = 1.0;
-		_this.w = 1.0;
-		let _this1 = iron_object_LightObject.corners[1];
-		_this1.x = -1.0;
-		_this1.y = -1.0;
-		_this1.z = -1.0;
-		_this1.w = 1.0;
-		let _this2 = iron_object_LightObject.corners[2];
-		_this2.x = -1.0;
-		_this2.y = 1.0;
-		_this2.z = 1.0;
-		_this2.w = 1.0;
-		let _this3 = iron_object_LightObject.corners[3];
-		_this3.x = -1.0;
-		_this3.y = 1.0;
-		_this3.z = -1.0;
-		_this3.w = 1.0;
-		let _this4 = iron_object_LightObject.corners[4];
-		_this4.x = 1.0;
-		_this4.y = -1.0;
-		_this4.z = 1.0;
-		_this4.w = 1.0;
-		let _this5 = iron_object_LightObject.corners[5];
-		_this5.x = 1.0;
-		_this5.y = -1.0;
-		_this5.z = -1.0;
-		_this5.w = 1.0;
-		let _this6 = iron_object_LightObject.corners[6];
-		_this6.x = 1.0;
-		_this6.y = 1.0;
-		_this6.z = 1.0;
-		_this6.w = 1.0;
-		let _this7 = iron_object_LightObject.corners[7];
-		_this7.x = 1.0;
-		_this7.y = 1.0;
-		_this7.z = -1.0;
-		_this7.w = 1.0;
+	static discardLight(light) {
+		if(!(!light.visible || light.data.raw.strength == 0.0)) {
+			return light.data.raw.type == "sun";
+		} else {
+			return true;
+		}
 	}
-	static mix(a,b,f) {
-		return a * (1 - f) + b * f;
+	static discardLightCulled(light) {
+		if(!(!light.visible || light.data.raw.strength == 0.0)) {
+			return light.data.raw.type == "sun";
+		} else {
+			return true;
+		}
+	}
+	static getRadius(strength) {
+		return Math.sqrt(strength / 0.004);
+	}
+	static distSliceX(f,lpos) {
+		return (lpos.x - f * lpos.z) / Math.sqrt(1.0 + f * f);
+	}
+	static distSliceY(f,lpos) {
+		return (lpos.y - f * lpos.z) / Math.sqrt(1.0 + f * f);
+	}
+	static sliceToDist(camera,z) {
+		let cnear = 3.0 + camera.data.raw.near_plane;
+		switch(z) {
+		case 0:
+			return camera.data.raw.near_plane;
+		case 1:
+			return cnear;
+		default:
+			let depthl = (z - 1) / (iron_object_LightObject.slicesZ - 1);
+			return Math.exp(depthl * Math.log(camera.data.raw.far_plane - cnear + 1.0)) + cnear - 1.0;
+		}
+	}
+	static updateClusters(camera) {
+		let lights = iron_Scene.active.lights;
+		if(iron_object_LightObject.clustersData == null) {
+			let lines = 1;
+			iron_object_LightObject.clustersData = kha_Image.create(iron_object_LightObject.slicesX * iron_object_LightObject.slicesY * iron_object_LightObject.slicesZ,lines + 4,1,1);
+		}
+		let bytes = iron_object_LightObject.clustersData.lock();
+		let stride = iron_object_LightObject.slicesX * iron_object_LightObject.slicesY * iron_object_LightObject.slicesZ;
+		let _g = 0;
+		let _g1 = stride;
+		while(_g < _g1) {
+			let i = _g++;
+			bytes.b[i] = 0;
+		}
+		let fovtan = Math.tan(camera.data.raw.fov * 0.5);
+		let stepY = 2.0 * fovtan / iron_object_LightObject.slicesY;
+		let aspect = iron_RenderPath.active.currentW / iron_RenderPath.active.currentH;
+		let stepX = 2.0 * fovtan * aspect / iron_object_LightObject.slicesX;
+		let n = lights.length > 4 ? 4 : lights.length;
+		let i = 0;
+		let _g2 = 0;
+		while(_g2 < lights.length) {
+			let l = lights[_g2];
+			++_g2;
+			if(!l.visible || l.data.raw.strength == 0.0 || l.data.raw.type == "sun") {
+				continue;
+			}
+			if(i >= n) {
+				break;
+			}
+			let _this = iron_object_LightObject.lpos;
+			_this.x = l.transform.world.self._30;
+			_this.y = l.transform.world.self._31;
+			_this.z = l.transform.world.self._32;
+			_this.w = 1.0;
+			let _this1 = iron_object_LightObject.lpos;
+			let m = camera.V;
+			let x = _this1.x;
+			let y = _this1.y;
+			let z = _this1.z;
+			let w = _this1.w;
+			_this1.x = m.self._00 * x + m.self._10 * y + m.self._20 * z + m.self._30 * w;
+			_this1.y = m.self._01 * x + m.self._11 * y + m.self._21 * z + m.self._31 * w;
+			_this1.z = m.self._02 * x + m.self._12 * y + m.self._22 * z + m.self._32 * w;
+			_this1.w = m.self._03 * x + m.self._13 * y + m.self._23 * z + m.self._33 * w;
+			iron_object_LightObject.lpos.z *= -1.0;
+			let radius = iron_object_LightObject.getRadius(l.data.raw.strength);
+			let minX = 0;
+			let minY = 0;
+			let minZ = 0;
+			let maxX = iron_object_LightObject.slicesX;
+			let maxY = iron_object_LightObject.slicesY;
+			let maxZ = iron_object_LightObject.slicesZ;
+			while(minX <= iron_object_LightObject.slicesX) {
+				let f = stepX * (minX + 1 - iron_object_LightObject.slicesX * 0.5);
+				let lpos = iron_object_LightObject.lpos;
+				if((lpos.x - f * lpos.z) / Math.sqrt(1.0 + f * f) <= radius) {
+					break;
+				}
+				++minX;
+			}
+			while(maxX >= minX) {
+				let f = stepX * (maxX - 1 - iron_object_LightObject.slicesX * 0.5);
+				let lpos = iron_object_LightObject.lpos;
+				if(-((lpos.x - f * lpos.z) / Math.sqrt(1.0 + f * f)) <= radius) {
+					--maxX;
+					break;
+				}
+				--maxX;
+			}
+			while(minY <= iron_object_LightObject.slicesY) {
+				let f = stepY * (minY + 1 - iron_object_LightObject.slicesY * 0.5);
+				let lpos = iron_object_LightObject.lpos;
+				if((lpos.y - f * lpos.z) / Math.sqrt(1.0 + f * f) <= radius) {
+					break;
+				}
+				++minY;
+			}
+			while(maxY >= minY) {
+				let f = stepY * (maxY - 1 - iron_object_LightObject.slicesY * 0.5);
+				let lpos = iron_object_LightObject.lpos;
+				if(-((lpos.y - f * lpos.z) / Math.sqrt(1.0 + f * f)) <= radius) {
+					--maxY;
+					break;
+				}
+				--maxY;
+			}
+			while(minZ <= iron_object_LightObject.slicesZ) {
+				if(iron_object_LightObject.sliceToDist(camera,minZ + 1) >= iron_object_LightObject.lpos.z - radius) {
+					break;
+				}
+				++minZ;
+			}
+			while(maxZ >= minZ) {
+				if(iron_object_LightObject.sliceToDist(camera,maxZ - 1) <= iron_object_LightObject.lpos.z + radius) {
+					break;
+				}
+				--maxZ;
+			}
+			let _g = minZ;
+			let _g1 = maxZ + 1;
+			while(_g < _g1) {
+				let z = _g++;
+				let _g1 = minY;
+				let _g2 = maxY + 1;
+				while(_g1 < _g2) {
+					let y = _g1++;
+					let _g = minX;
+					let _g2 = maxX + 1;
+					while(_g < _g2) {
+						let x = _g++;
+						let cluster = x + y * iron_object_LightObject.slicesX + z * iron_object_LightObject.slicesX * iron_object_LightObject.slicesY;
+						let numLights = bytes.b[cluster];
+						if(numLights < 4) {
+							++numLights;
+							bytes.b[cluster] = numLights;
+							bytes.b[cluster + stride * numLights] = i;
+						}
+					}
+				}
+			}
+			++i;
+		}
+		iron_object_LightObject.clustersData.unlock();
+		iron_object_LightObject.updateLightsArray();
+	}
+	static updateLightsArray() {
+		if(iron_object_LightObject.lightsArray == null) {
+			iron_object_LightObject.lightsArray = kha_arrays_Float32Array._new(48);
+		}
+		let lights = iron_Scene.active.lights;
+		let n = lights.length > 4 ? 4 : lights.length;
+		let i = 0;
+		let _g = 0;
+		while(_g < lights.length) {
+			let l = lights[_g];
+			++_g;
+			if(!l.visible || l.data.raw.strength == 0.0 || l.data.raw.type == "sun") {
+				continue;
+			}
+			if(i >= n) {
+				break;
+			}
+			let v = l.transform.world.self._30;
+			iron_object_LightObject.lightsArray.setFloat32(i * 12 * 4,v,true);
+			let v1 = l.transform.world.self._31;
+			iron_object_LightObject.lightsArray.setFloat32((i * 12 + 1) * 4,v1,true);
+			let v2 = l.transform.world.self._32;
+			iron_object_LightObject.lightsArray.setFloat32((i * 12 + 2) * 4,v2,true);
+			iron_object_LightObject.lightsArray.setFloat32((i * 12 + 3) * 4,0.0,true);
+			let f = l.data.raw.strength;
+			let v3 = l.data.raw.color.getFloat32(0,kha_arrays_ByteArray.LITTLE_ENDIAN) * f;
+			iron_object_LightObject.lightsArray.setFloat32((i * 12 + 4) * 4,v3,true);
+			let v4 = l.data.raw.color.getFloat32(4,kha_arrays_ByteArray.LITTLE_ENDIAN) * f;
+			iron_object_LightObject.lightsArray.setFloat32((i * 12 + 5) * 4,v4,true);
+			let v5 = l.data.raw.color.getFloat32(8,kha_arrays_ByteArray.LITTLE_ENDIAN) * f;
+			iron_object_LightObject.lightsArray.setFloat32((i * 12 + 6) * 4,v5,true);
+			iron_object_LightObject.lightsArray.setFloat32((i * 12 + 7) * 4,0.0,true);
+			let v6 = l.data.raw.shadows_bias;
+			iron_object_LightObject.lightsArray.setFloat32((i * 12 + 8) * 4,v6,true);
+			iron_object_LightObject.lightsArray.setFloat32((i * 12 + 9) * 4,0.0,true);
+			let v7 = l.data.raw.cast_shadow ? 1.0 : 0.0;
+			iron_object_LightObject.lightsArray.setFloat32((i * 12 + 10) * 4,v7,true);
+			iron_object_LightObject.lightsArray.setFloat32((i * 12 + 11) * 4,0.0,true);
+			++i;
+		}
+	}
+	static updateLWVPMatrixArray(object,type) {
+		if(iron_object_LightObject.LWVPMatrixArray == null) {
+			iron_object_LightObject.LWVPMatrixArray = kha_arrays_Float32Array._new(64);
+		}
+		let lights = iron_Scene.active.lights;
+		let n = lights.length > 4 ? 4 : lights.length;
+		let i = 0;
+		let _g = 0;
+		while(_g < lights.length) {
+			let light = lights[_g];
+			++_g;
+			if(i >= n) {
+				break;
+			}
+			if(!light.visible || light.data.raw.strength == 0.0 || light.data.raw.type == "sun") {
+				continue;
+			}
+			if(light.data.raw.type == type) {
+				let _this = iron_object_LightObject.m;
+				let m = light.VP;
+				_this.self._00 = m.self._00;
+				_this.self._01 = m.self._01;
+				_this.self._02 = m.self._02;
+				_this.self._03 = m.self._03;
+				_this.self._10 = m.self._10;
+				_this.self._11 = m.self._11;
+				_this.self._12 = m.self._12;
+				_this.self._13 = m.self._13;
+				_this.self._20 = m.self._20;
+				_this.self._21 = m.self._21;
+				_this.self._22 = m.self._22;
+				_this.self._23 = m.self._23;
+				_this.self._30 = m.self._30;
+				_this.self._31 = m.self._31;
+				_this.self._32 = m.self._32;
+				_this.self._33 = m.self._33;
+				let _this1 = iron_object_LightObject.m;
+				let m1 = iron_object_Uniforms.biasMat;
+				let a00 = _this1.self._00;
+				let a01 = _this1.self._01;
+				let a02 = _this1.self._02;
+				let a03 = _this1.self._03;
+				let a10 = _this1.self._10;
+				let a11 = _this1.self._11;
+				let a12 = _this1.self._12;
+				let a13 = _this1.self._13;
+				let a20 = _this1.self._20;
+				let a21 = _this1.self._21;
+				let a22 = _this1.self._22;
+				let a23 = _this1.self._23;
+				let a30 = _this1.self._30;
+				let a31 = _this1.self._31;
+				let a32 = _this1.self._32;
+				let a33 = _this1.self._33;
+				let b0 = m1.self._00;
+				let b1 = m1.self._10;
+				let b2 = m1.self._20;
+				let b3 = m1.self._30;
+				_this1.self._00 = a00 * b0 + a01 * b1 + a02 * b2 + a03 * b3;
+				_this1.self._10 = a10 * b0 + a11 * b1 + a12 * b2 + a13 * b3;
+				_this1.self._20 = a20 * b0 + a21 * b1 + a22 * b2 + a23 * b3;
+				_this1.self._30 = a30 * b0 + a31 * b1 + a32 * b2 + a33 * b3;
+				b0 = m1.self._01;
+				b1 = m1.self._11;
+				b2 = m1.self._21;
+				b3 = m1.self._31;
+				_this1.self._01 = a00 * b0 + a01 * b1 + a02 * b2 + a03 * b3;
+				_this1.self._11 = a10 * b0 + a11 * b1 + a12 * b2 + a13 * b3;
+				_this1.self._21 = a20 * b0 + a21 * b1 + a22 * b2 + a23 * b3;
+				_this1.self._31 = a30 * b0 + a31 * b1 + a32 * b2 + a33 * b3;
+				b0 = m1.self._02;
+				b1 = m1.self._12;
+				b2 = m1.self._22;
+				b3 = m1.self._32;
+				_this1.self._02 = a00 * b0 + a01 * b1 + a02 * b2 + a03 * b3;
+				_this1.self._12 = a10 * b0 + a11 * b1 + a12 * b2 + a13 * b3;
+				_this1.self._22 = a20 * b0 + a21 * b1 + a22 * b2 + a23 * b3;
+				_this1.self._32 = a30 * b0 + a31 * b1 + a32 * b2 + a33 * b3;
+				b0 = m1.self._03;
+				b1 = m1.self._13;
+				b2 = m1.self._23;
+				b3 = m1.self._33;
+				_this1.self._03 = a00 * b0 + a01 * b1 + a02 * b2 + a03 * b3;
+				_this1.self._13 = a10 * b0 + a11 * b1 + a12 * b2 + a13 * b3;
+				_this1.self._23 = a20 * b0 + a21 * b1 + a22 * b2 + a23 * b3;
+				_this1.self._33 = a30 * b0 + a31 * b1 + a32 * b2 + a33 * b3;
+				let v = iron_object_LightObject.m.self._00;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32(i * 16 * 4,v,true);
+				let v1 = iron_object_LightObject.m.self._01;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32((i * 16 + 1) * 4,v1,true);
+				let v2 = iron_object_LightObject.m.self._02;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32((i * 16 + 2) * 4,v2,true);
+				let v3 = iron_object_LightObject.m.self._03;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32((i * 16 + 3) * 4,v3,true);
+				let v4 = iron_object_LightObject.m.self._10;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32((i * 16 + 4) * 4,v4,true);
+				let v5 = iron_object_LightObject.m.self._11;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32((i * 16 + 5) * 4,v5,true);
+				let v6 = iron_object_LightObject.m.self._12;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32((i * 16 + 6) * 4,v6,true);
+				let v7 = iron_object_LightObject.m.self._13;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32((i * 16 + 7) * 4,v7,true);
+				let v8 = iron_object_LightObject.m.self._20;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32((i * 16 + 8) * 4,v8,true);
+				let v9 = iron_object_LightObject.m.self._21;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32((i * 16 + 9) * 4,v9,true);
+				let v10 = iron_object_LightObject.m.self._22;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32((i * 16 + 10) * 4,v10,true);
+				let v11 = iron_object_LightObject.m.self._23;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32((i * 16 + 11) * 4,v11,true);
+				let v12 = iron_object_LightObject.m.self._30;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32((i * 16 + 12) * 4,v12,true);
+				let v13 = iron_object_LightObject.m.self._31;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32((i * 16 + 13) * 4,v13,true);
+				let v14 = iron_object_LightObject.m.self._32;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32((i * 16 + 14) * 4,v14,true);
+				let v15 = iron_object_LightObject.m.self._33;
+				iron_object_LightObject.LWVPMatrixArray.setFloat32((i * 16 + 15) * 4,v15,true);
+			}
+			++i;
+		}
+		return iron_object_LightObject.LWVPMatrixArray;
+	}
+	static getMaxLights() {
+		return 4;
+	}
+	static getMaxLightsCluster() {
+		return 4;
 	}
 }
 $hxClasses["iron.object.LightObject"] = iron_object_LightObject;
@@ -23937,11 +23449,6 @@ iron_object_LightObject.__super__ = iron_object_Object;
 Object.assign(iron_object_LightObject.prototype, {
 	__class__: iron_object_LightObject
 	,data: null
-	,cascadeData: null
-	,cascadeVP: null
-	,camSlicedP: null
-	,cascadeSplit: null
-	,bias: null
 	,V: null
 	,P: null
 	,VP: null
@@ -26429,6 +25936,10 @@ class iron_object_Uniforms {
 					}
 				} else {
 					switch(tulink) {
+					case "_clustersData":
+						g.setTexture(context.textureUnits[j],iron_object_LightObject.clustersData);
+						g.setTextureParameters(context.textureUnits[j],2,2,0,0,0);
+						break;
 					case "_envmap":
 						let w = iron_Scene.active.world;
 						if(w != null) {
@@ -27572,20 +27083,11 @@ class iron_object_Uniforms {
 		} else if(c.type == "floats") {
 			let fa = null;
 			switch(c.link) {
-			case "_cascadeData":
-				let _g = 0;
-				let _g1 = iron_Scene.active.lights;
-				while(_g < _g1.length) {
-					let l = _g1[_g];
-					++_g;
-					if(l.data.raw.type == "sun") {
-						fa = l.getCascadeData();
-						break;
-					}
-				}
-				break;
 			case "_envmapIrradiance":
 				fa = iron_Scene.active.world == null ? iron_data_WorldData.getEmptyIrradiance() : iron_Scene.active.world.probe.irradiance;
+				break;
+			case "_lightsArray":
+				fa = iron_object_LightObject.lightsArray;
 				break;
 			}
 			if(fa != null) {
@@ -32674,10 +32176,10 @@ class kha_Shaders {
 		blobs1.push(kha_internal_BytesBlob.fromBytes(bytes1));
 		kha_Shaders.GroundMaterial_mesh_vert = new kha_graphics4_VertexShader(blobs1,["GroundMaterial_mesh.vert.d3d11"]);
 		let blobs2 = [];
-		let data2 = Reflect.field(kha_Shaders,"GroundMaterial_shadowmap_vertData" + 0);
+		let data2 = Reflect.field(kha_Shaders,"Walls_mesh_fragData" + 0);
 		let bytes2 = haxe_Unserializer.run(data2);
 		blobs2.push(kha_internal_BytesBlob.fromBytes(bytes2));
-		kha_Shaders.GroundMaterial_shadowmap_vert = new kha_graphics4_VertexShader(blobs2,["GroundMaterial_shadowmap.vert.d3d11"]);
+		kha_Shaders.Walls_mesh_frag = new kha_graphics4_FragmentShader(blobs2,["Walls_mesh.frag.d3d11"]);
 		let blobs3 = [];
 		let data3 = Reflect.field(kha_Shaders,"World_World_fragData" + 0);
 		let bytes3 = haxe_Unserializer.run(data3);
@@ -32699,135 +32201,75 @@ class kha_Shaders {
 		blobs6.push(kha_internal_BytesBlob.fromBytes(bytes6));
 		kha_Shaders.armdefaultskin_mesh_vert = new kha_graphics4_VertexShader(blobs6,["armdefaultskin_mesh.vert.d3d11"]);
 		let blobs7 = [];
-		let data7 = Reflect.field(kha_Shaders,"armdefaultskin_shadowmap_fragData" + 0);
+		let data7 = Reflect.field(kha_Shaders,"deferred_light_fragData" + 0);
 		let bytes7 = haxe_Unserializer.run(data7);
 		blobs7.push(kha_internal_BytesBlob.fromBytes(bytes7));
-		kha_Shaders.armdefaultskin_shadowmap_frag = new kha_graphics4_FragmentShader(blobs7,["armdefaultskin_shadowmap.frag.d3d11"]);
+		kha_Shaders.deferred_light_frag = new kha_graphics4_FragmentShader(blobs7,["deferred_light.frag.d3d11"]);
 		let blobs8 = [];
-		let data8 = Reflect.field(kha_Shaders,"armdefaultskin_shadowmap_vertData" + 0);
+		let data8 = Reflect.field(kha_Shaders,"line_deferred_fragData" + 0);
 		let bytes8 = haxe_Unserializer.run(data8);
 		blobs8.push(kha_internal_BytesBlob.fromBytes(bytes8));
-		kha_Shaders.armdefaultskin_shadowmap_vert = new kha_graphics4_VertexShader(blobs8,["armdefaultskin_shadowmap.vert.d3d11"]);
+		kha_Shaders.line_deferred_frag = new kha_graphics4_FragmentShader(blobs8,["line_deferred.frag.d3d11"]);
 		let blobs9 = [];
-		let data9 = Reflect.field(kha_Shaders,"blur_edge_pass_fragData" + 0);
+		let data9 = Reflect.field(kha_Shaders,"line_vertData" + 0);
 		let bytes9 = haxe_Unserializer.run(data9);
 		blobs9.push(kha_internal_BytesBlob.fromBytes(bytes9));
-		kha_Shaders.blur_edge_pass_frag = new kha_graphics4_FragmentShader(blobs9,["blur_edge_pass.frag.d3d11"]);
+		kha_Shaders.line_vert = new kha_graphics4_VertexShader(blobs9,["line.vert.d3d11"]);
 		let blobs10 = [];
-		let data10 = Reflect.field(kha_Shaders,"compositor_pass_fragData" + 0);
+		let data10 = Reflect.field(kha_Shaders,"painter_colored_fragData" + 0);
 		let bytes10 = haxe_Unserializer.run(data10);
 		blobs10.push(kha_internal_BytesBlob.fromBytes(bytes10));
-		kha_Shaders.compositor_pass_frag = new kha_graphics4_FragmentShader(blobs10,["compositor_pass.frag.d3d11"]);
+		kha_Shaders.painter_colored_frag = new kha_graphics4_FragmentShader(blobs10,["painter-colored.frag.d3d11"]);
 		let blobs11 = [];
-		let data11 = Reflect.field(kha_Shaders,"compositor_pass_vertData" + 0);
+		let data11 = Reflect.field(kha_Shaders,"painter_colored_vertData" + 0);
 		let bytes11 = haxe_Unserializer.run(data11);
 		blobs11.push(kha_internal_BytesBlob.fromBytes(bytes11));
-		kha_Shaders.compositor_pass_vert = new kha_graphics4_VertexShader(blobs11,["compositor_pass.vert.d3d11"]);
+		kha_Shaders.painter_colored_vert = new kha_graphics4_VertexShader(blobs11,["painter-colored.vert.d3d11"]);
 		let blobs12 = [];
-		let data12 = Reflect.field(kha_Shaders,"deferred_light_fragData" + 0);
+		let data12 = Reflect.field(kha_Shaders,"painter_image_fragData" + 0);
 		let bytes12 = haxe_Unserializer.run(data12);
 		blobs12.push(kha_internal_BytesBlob.fromBytes(bytes12));
-		kha_Shaders.deferred_light_frag = new kha_graphics4_FragmentShader(blobs12,["deferred_light.frag.d3d11"]);
+		kha_Shaders.painter_image_frag = new kha_graphics4_FragmentShader(blobs12,["painter-image.frag.d3d11"]);
 		let blobs13 = [];
-		let data13 = Reflect.field(kha_Shaders,"line_deferred_fragData" + 0);
+		let data13 = Reflect.field(kha_Shaders,"painter_image_vertData" + 0);
 		let bytes13 = haxe_Unserializer.run(data13);
 		blobs13.push(kha_internal_BytesBlob.fromBytes(bytes13));
-		kha_Shaders.line_deferred_frag = new kha_graphics4_FragmentShader(blobs13,["line_deferred.frag.d3d11"]);
+		kha_Shaders.painter_image_vert = new kha_graphics4_VertexShader(blobs13,["painter-image.vert.d3d11"]);
 		let blobs14 = [];
-		let data14 = Reflect.field(kha_Shaders,"line_vertData" + 0);
+		let data14 = Reflect.field(kha_Shaders,"painter_text_fragData" + 0);
 		let bytes14 = haxe_Unserializer.run(data14);
 		blobs14.push(kha_internal_BytesBlob.fromBytes(bytes14));
-		kha_Shaders.line_vert = new kha_graphics4_VertexShader(blobs14,["line.vert.d3d11"]);
+		kha_Shaders.painter_text_frag = new kha_graphics4_FragmentShader(blobs14,["painter-text.frag.d3d11"]);
 		let blobs15 = [];
-		let data15 = Reflect.field(kha_Shaders,"painter_colored_fragData" + 0);
+		let data15 = Reflect.field(kha_Shaders,"painter_text_vertData" + 0);
 		let bytes15 = haxe_Unserializer.run(data15);
 		blobs15.push(kha_internal_BytesBlob.fromBytes(bytes15));
-		kha_Shaders.painter_colored_frag = new kha_graphics4_FragmentShader(blobs15,["painter-colored.frag.d3d11"]);
+		kha_Shaders.painter_text_vert = new kha_graphics4_VertexShader(blobs15,["painter-text.vert.d3d11"]);
 		let blobs16 = [];
-		let data16 = Reflect.field(kha_Shaders,"painter_colored_vertData" + 0);
+		let data16 = Reflect.field(kha_Shaders,"painter_video_fragData" + 0);
 		let bytes16 = haxe_Unserializer.run(data16);
 		blobs16.push(kha_internal_BytesBlob.fromBytes(bytes16));
-		kha_Shaders.painter_colored_vert = new kha_graphics4_VertexShader(blobs16,["painter-colored.vert.d3d11"]);
+		kha_Shaders.painter_video_frag = new kha_graphics4_FragmentShader(blobs16,["painter-video.frag.d3d11"]);
 		let blobs17 = [];
-		let data17 = Reflect.field(kha_Shaders,"painter_image_fragData" + 0);
+		let data17 = Reflect.field(kha_Shaders,"painter_video_vertData" + 0);
 		let bytes17 = haxe_Unserializer.run(data17);
 		blobs17.push(kha_internal_BytesBlob.fromBytes(bytes17));
-		kha_Shaders.painter_image_frag = new kha_graphics4_FragmentShader(blobs17,["painter-image.frag.d3d11"]);
+		kha_Shaders.painter_video_vert = new kha_graphics4_VertexShader(blobs17,["painter-video.vert.d3d11"]);
 		let blobs18 = [];
-		let data18 = Reflect.field(kha_Shaders,"painter_image_vertData" + 0);
+		let data18 = Reflect.field(kha_Shaders,"pass_copy_fragData" + 0);
 		let bytes18 = haxe_Unserializer.run(data18);
 		blobs18.push(kha_internal_BytesBlob.fromBytes(bytes18));
-		kha_Shaders.painter_image_vert = new kha_graphics4_VertexShader(blobs18,["painter-image.vert.d3d11"]);
+		kha_Shaders.pass_copy_frag = new kha_graphics4_FragmentShader(blobs18,["pass_copy.frag.d3d11"]);
 		let blobs19 = [];
-		let data19 = Reflect.field(kha_Shaders,"painter_text_fragData" + 0);
+		let data19 = Reflect.field(kha_Shaders,"pass_vertData" + 0);
 		let bytes19 = haxe_Unserializer.run(data19);
 		blobs19.push(kha_internal_BytesBlob.fromBytes(bytes19));
-		kha_Shaders.painter_text_frag = new kha_graphics4_FragmentShader(blobs19,["painter-text.frag.d3d11"]);
+		kha_Shaders.pass_vert = new kha_graphics4_VertexShader(blobs19,["pass.vert.d3d11"]);
 		let blobs20 = [];
-		let data20 = Reflect.field(kha_Shaders,"painter_text_vertData" + 0);
+		let data20 = Reflect.field(kha_Shaders,"pass_viewray_vertData" + 0);
 		let bytes20 = haxe_Unserializer.run(data20);
 		blobs20.push(kha_internal_BytesBlob.fromBytes(bytes20));
-		kha_Shaders.painter_text_vert = new kha_graphics4_VertexShader(blobs20,["painter-text.vert.d3d11"]);
-		let blobs21 = [];
-		let data21 = Reflect.field(kha_Shaders,"painter_video_fragData" + 0);
-		let bytes21 = haxe_Unserializer.run(data21);
-		blobs21.push(kha_internal_BytesBlob.fromBytes(bytes21));
-		kha_Shaders.painter_video_frag = new kha_graphics4_FragmentShader(blobs21,["painter-video.frag.d3d11"]);
-		let blobs22 = [];
-		let data22 = Reflect.field(kha_Shaders,"painter_video_vertData" + 0);
-		let bytes22 = haxe_Unserializer.run(data22);
-		blobs22.push(kha_internal_BytesBlob.fromBytes(bytes22));
-		kha_Shaders.painter_video_vert = new kha_graphics4_VertexShader(blobs22,["painter-video.vert.d3d11"]);
-		let blobs23 = [];
-		let data23 = Reflect.field(kha_Shaders,"pass_copy_fragData" + 0);
-		let bytes23 = haxe_Unserializer.run(data23);
-		blobs23.push(kha_internal_BytesBlob.fromBytes(bytes23));
-		kha_Shaders.pass_copy_frag = new kha_graphics4_FragmentShader(blobs23,["pass_copy.frag.d3d11"]);
-		let blobs24 = [];
-		let data24 = Reflect.field(kha_Shaders,"pass_vertData" + 0);
-		let bytes24 = haxe_Unserializer.run(data24);
-		blobs24.push(kha_internal_BytesBlob.fromBytes(bytes24));
-		kha_Shaders.pass_vert = new kha_graphics4_VertexShader(blobs24,["pass.vert.d3d11"]);
-		let blobs25 = [];
-		let data25 = Reflect.field(kha_Shaders,"pass_viewray_vertData" + 0);
-		let bytes25 = haxe_Unserializer.run(data25);
-		blobs25.push(kha_internal_BytesBlob.fromBytes(bytes25));
-		kha_Shaders.pass_viewray_vert = new kha_graphics4_VertexShader(blobs25,["pass_viewray.vert.d3d11"]);
-		let blobs26 = [];
-		let data26 = Reflect.field(kha_Shaders,"smaa_blend_weight_fragData" + 0);
-		let bytes26 = haxe_Unserializer.run(data26);
-		blobs26.push(kha_internal_BytesBlob.fromBytes(bytes26));
-		kha_Shaders.smaa_blend_weight_frag = new kha_graphics4_FragmentShader(blobs26,["smaa_blend_weight.frag.d3d11"]);
-		let blobs27 = [];
-		let data27 = Reflect.field(kha_Shaders,"smaa_blend_weight_vertData" + 0);
-		let bytes27 = haxe_Unserializer.run(data27);
-		blobs27.push(kha_internal_BytesBlob.fromBytes(bytes27));
-		kha_Shaders.smaa_blend_weight_vert = new kha_graphics4_VertexShader(blobs27,["smaa_blend_weight.vert.d3d11"]);
-		let blobs28 = [];
-		let data28 = Reflect.field(kha_Shaders,"smaa_edge_detect_fragData" + 0);
-		let bytes28 = haxe_Unserializer.run(data28);
-		blobs28.push(kha_internal_BytesBlob.fromBytes(bytes28));
-		kha_Shaders.smaa_edge_detect_frag = new kha_graphics4_FragmentShader(blobs28,["smaa_edge_detect.frag.d3d11"]);
-		let blobs29 = [];
-		let data29 = Reflect.field(kha_Shaders,"smaa_edge_detect_vertData" + 0);
-		let bytes29 = haxe_Unserializer.run(data29);
-		blobs29.push(kha_internal_BytesBlob.fromBytes(bytes29));
-		kha_Shaders.smaa_edge_detect_vert = new kha_graphics4_VertexShader(blobs29,["smaa_edge_detect.vert.d3d11"]);
-		let blobs30 = [];
-		let data30 = Reflect.field(kha_Shaders,"smaa_neighborhood_blend_fragData" + 0);
-		let bytes30 = haxe_Unserializer.run(data30);
-		blobs30.push(kha_internal_BytesBlob.fromBytes(bytes30));
-		kha_Shaders.smaa_neighborhood_blend_frag = new kha_graphics4_FragmentShader(blobs30,["smaa_neighborhood_blend.frag.d3d11"]);
-		let blobs31 = [];
-		let data31 = Reflect.field(kha_Shaders,"smaa_neighborhood_blend_vertData" + 0);
-		let bytes31 = haxe_Unserializer.run(data31);
-		blobs31.push(kha_internal_BytesBlob.fromBytes(bytes31));
-		kha_Shaders.smaa_neighborhood_blend_vert = new kha_graphics4_VertexShader(blobs31,["smaa_neighborhood_blend.vert.d3d11"]);
-		let blobs32 = [];
-		let data32 = Reflect.field(kha_Shaders,"ssao_pass_fragData" + 0);
-		let bytes32 = haxe_Unserializer.run(data32);
-		blobs32.push(kha_internal_BytesBlob.fromBytes(bytes32));
-		kha_Shaders.ssao_pass_frag = new kha_graphics4_FragmentShader(blobs32,["ssao_pass.frag.d3d11"]);
+		kha_Shaders.pass_viewray_vert = new kha_graphics4_VertexShader(blobs20,["pass_viewray.vert.d3d11"]);
 	}
 }
 $hxClasses["kha.Shaders"] = kha_Shaders;
@@ -59938,10 +59380,14 @@ iron_object_CameraObject.q = new iron_math_Quat();
 iron_object_CameraObject.sphereCenter = new iron_math_Vec4();
 iron_object_CameraObject.vcenter = new iron_math_Vec4();
 iron_object_CameraObject.vup = new iron_math_Vec4();
-iron_object_LightObject.cascadeCount = 1;
-iron_object_LightObject.cascadeSplitFactor = 0.8;
-iron_object_LightObject.cascadeBounds = 1.0;
 iron_object_LightObject.helpMat = new iron_math_Mat4(1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0);
+iron_object_LightObject.slicesX = 16;
+iron_object_LightObject.slicesY = 16;
+iron_object_LightObject.slicesZ = 16;
+iron_object_LightObject.maxLights = 4;
+iron_object_LightObject.maxLightsCluster = 4;
+iron_object_LightObject.clusterNear = 3.0;
+iron_object_LightObject.lpos = new iron_math_Vec4();
 iron_object_LightObject.m = new iron_math_Mat4(1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0);
 iron_object_LightObject.eye = new iron_math_Vec4();
 iron_object_Transform.temp = new iron_math_Mat4(1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0);
@@ -59986,19 +59432,14 @@ kha_Scheduler.timeWarpSaveTime = 10.0;
 kha_Scheduler.DIF_COUNT = 3;
 kha_Scheduler.maxframetime = 0.5;
 kha_Scheduler.startTime = 0;
-kha_Shaders.GroundMaterial_mesh_fragData0 = "s1188:AAAARFhCQ466JHdqsOpLs9hXqqCW3VEBAAAAeAMAAAUAAAA0AAAAgAAAALQAAAAAAQAA:AIAAFJERUZEAAAAAAAAAAAAAAAAAAAAHAAAAAAE::8AAQAAHAAAAE1pY3Jvc29mdCAoUikgSExTTCBTaGFkZXIgQ29tcGlsZXIgMTAuMQBJU0dOLAAAAAEAAAAIAAAAIAAAAAAAAAAAAAAAAwAAAAAAAAAHBwAAVEVYQ09PUkQAq6urT1NHTkQAAAACAAAACAAAADgAAAAAAAAAAAAAAAMAAAAAAAAADwAAADgAAAABAAAAAAAAAAMAAAABAAAADwAAAFNWX1RhcmdldACrq1NIRFL0AQAAQAAAAH0AAABiEAADchAQAAAAAABlAAAD8iAQAAAAAABlAAAD8iAQAAEAAABoAAACAwAAABAAAAcSABAAAAAAAEYSEAAAAAAARhIQAAAAAABEAAAFEgAQAAAAAAAKABAAAAAAADgAAAdyABAAAAAAAAYAEAAAAAAAJhkQAAAAAAAAAAAJggAQAAAAAAAqABCAgQAAAAAAAAAaABCAgQAAAAAAAAAAAAAIggAQAAAAAAAKABCAgQAAAAAAAAA6ABAAAAAAAA4AAAdyABAAAAAAAEYCEAAAAAAA9g8QAAAAAAAAAAALMgAQAAEAAABmChCAwQAAAAAAAAACQAAAAACAPwAAgD8AAAAAAAAAAB0AAApyABAAAgAAAEYCEAAAAAAAAkAAAAAAAAAAAAAAAAAAAAAAAAA3AAAPkgAQAAAAAABWCRAAAgAAAAJAAAAAAIA:AAAAAAAAAAAAAIA:AkAAAAAAgL8AAAAAAAAAAAAAgL84AAAHkgAQAAAAAAAGDBAAAAAAAAYEEAABAAAANwAACTIgEAAAAAAABgAQAAIAAACWBRAAAAAAAMYAEAAAAAAANgAACMIgEAAAAAAAAkAAAAAAAAAAAAAAzMxMPgBA30Q2AAAI8iAQAAEAAAACQAAAzsxMP9jw3T3qqoo9AIB:Qz4AAAFTVEFUdAAAAA4AAAADAAAAAAAAAAMAAAAJAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+kha_Shaders.GroundMaterial_mesh_fragData0 = "s1188:AAAARFhCQ78k2hWXEjEYqHybQoSoyu0BAAAAeAMAAAUAAAA0AAAAgAAAALQAAAAAAQAA:AIAAFJERUZEAAAAAAAAAAAAAAAAAAAAHAAAAAAE::8AAQAAHAAAAE1pY3Jvc29mdCAoUikgSExTTCBTaGFkZXIgQ29tcGlsZXIgMTAuMQBJU0dOLAAAAAEAAAAIAAAAIAAAAAAAAAAAAAAAAwAAAAAAAAAHBwAAVEVYQ09PUkQAq6urT1NHTkQAAAACAAAACAAAADgAAAAAAAAAAAAAAAMAAAAAAAAADwAAADgAAAABAAAAAAAAAAMAAAABAAAADwAAAFNWX1RhcmdldACrq1NIRFL0AQAAQAAAAH0AAABiEAADchAQAAAAAABlAAAD8iAQAAAAAABlAAAD8iAQAAEAAABoAAACAwAAABAAAAcSABAAAAAAAEYSEAAAAAAARhIQAAAAAABEAAAFEgAQAAAAAAAKABAAAAAAADgAAAdyABAAAAAAAAYAEAAAAAAAJhkQAAAAAAAAAAAJggAQAAAAAAAqABCAgQAAAAAAAAAaABCAgQAAAAAAAAAAAAAIggAQAAAAAAAKABCAgQAAAAAAAAA6ABAAAAAAAA4AAAdyABAAAAAAAEYCEAAAAAAA9g8QAAAAAAAAAAALMgAQAAEAAABmChCAwQAAAAAAAAACQAAAAACAPwAAgD8AAAAAAAAAAB0AAApyABAAAgAAAEYCEAAAAAAAAkAAAAAAAAAAAAAAAAAAAAAAAAA3AAAPkgAQAAAAAABWCRAAAgAAAAJAAAAAAIA:AAAAAAAAAAAAAIA:AkAAAAAAgL8AAAAAAAAAAAAAgL84AAAHkgAQAAAAAAAGDBAAAAAAAAYEEAABAAAANwAACTIgEAAAAAAABgAQAAIAAACWBRAAAAAAAMYAEAAAAAAANgAACMIgEAAAAAAAAkAAAAAAAAAAAAAAhORTPwAAVEM2AAAI8iAQAAEAAAACQAAAirBIPqfrIz1ZTmM7AIB:Qz4AAAFTVEFUdAAAAA4AAAADAAAAAAAAAAMAAAAJAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 kha_Shaders.GroundMaterial_mesh_vertData0 = "s1564:Am5vcgAAcG9zAAEBJEdsb2JhbHMAAAJOAAAAAAAsAAAAAwNXVlAAMAAAAEAAAAAEBERYQkM1naQKmv7Vzgxtb0zlUpSsAQAAAGQEAAAFAAAANAAAABwBAABoAQAAwAEAAOgDAABSREVG4AAAAAEAAABIAAAAAQAAABwAAAAABP7:AAEAALgAAAA8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAACRHbG9iYWxzAKurqzwAAAACAAAAYAAAAHAAAAAAAAAAAAAAAJAAAAAAAAAALAAAAAIAAACUAAAAAAAAAKQAAAAwAAAAQAAAAAIAAACoAAAAAAAAAE4Aq6sDAAMAAwADAAAAAAAAAAAAV1ZQAAMAAwAEAAQAAAAAAAAAAABNaWNyb3NvZnQgKFIpIEhMU0wgU2hhZGVyIENvbXBpbGVyIDEwLjEASVNHTkQAAAACAAAACAAAADgAAAAAAAAAAAAAAAMAAAAAAAAAAwMAADgAAAABAAAAAAAAAAMAAAABAAAADw8AAFRFWENPT1JEAKurq09TR05QAAAAAgAAAAgAAAA4AAAAAAAAAAAAAAADAAAAAAAAAAcIAABBAAAAAAAAAAEAAAADAAAAAQAAAA8AAABURVhDT09SRABTVl9Qb3NpdGlvbgCrq6tTSERSIAIAAEAAAQCIAAAAWQAABEaOIAAAAAAABwAAAF8AAAMyEBAAAAAAAF8AAAPyEBAAAQAAAGUAAANyIBAAAAAAAGcAAATyIBAAAQAAAAEAAABoAAACAgAAADYAAAUyABAAAAAAAEYQEAAAAAAANgAABUIAEAAAAAAAOhAQAAEAAAAQAAAIEgAQAAEAAABGAhAAAAAAAEaCIAAAAAAAAAAAABAAAAgiABAAAQAAAEYCEAAAAAAARoIgAAAAAAABAAAAEAAACEIAEAABAAAARgIQAAAAAABGgiAAAAAAAAIAAAAQAAAHEgAQAAAAAABGAhAAAQAAAEYCEAABAAAARAAABRIAEAAAAAAACgAQAAAAAAA4AAAHciAQAAAAAAAGABAAAAAAAEYCEAABAAAANgAABXIAEAAAAAAARhIQAAEAAAA2AAAFggAQAAAAAAABQAAAAACAPxEAAAgSABAAAQAAAEYOEAAAAAAARo4gAAAAAAAFAAAAEQAACCIAEAABAAAARg4QAAAAAABGjiAAAAAAAAYAAAAAAAAHEgAQAAEAAAAaABAAAQAAAAoAEAABAAAANgAABYIgEAABAAAAGgAQAAEAAAA4AAAHQiAQAAEAAAAKABAAAQAAAAFAAAAAAAA:EQAACBIgEAABAAAARg4QAAAAAABGjiAAAAAAAAMAAAARAAAIIiAQAAEAAABGDhAAAAAAAEaOIAAAAAAABAAAAD4AAAFTVEFUdAAAABIAAAACAAAAAAAAAAQAAAAMAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-kha_Shaders.GroundMaterial_shadowmap_vertData0 = "s1095:AXBvcwAAASRHbG9iYWxzAAABTFdWUAAAAAAAQAAAAAQERFhCQwpk4Gh9R86Sox3W%tlktaoBAAAAFAMAAAUAAAA0AAAA9AAAACgBAABcAQAAmAIAAFJERUa4AAAAAQAAAEgAAAABAAAAHAAAAAAE:v8AAQAAkAAAADwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAJEdsb2JhbHMAq6urPAAAAAEAAABgAAAAQAAAAAAAAAAAAAAAeAAAAAAAAABAAAAAAgAAAIAAAAAAAAAATFdWUACrq6sDAAMABAAEAAAAAAAAAAAATWljcm9zb2Z0IChSKSBITFNMIFNoYWRlciBDb21waWxlciAxMC4xAElTR04sAAAAAQAAAAgAAAAgAAAAAAAAAAAAAAADAAAAAAAAAA8HAABURVhDT09SRACrq6tPU0dOLAAAAAEAAAAIAAAAIAAAAAAAAAABAAAAAwAAAAAAAAAPAAAAU1ZfUG9zaXRpb24AU0hEUjQBAABAAAEATQAAAFkAAARGjiAAAAAAAAQAAABfAAADchAQAAAAAABnAAAE8iAQAAAAAAABAAAAaAAAAgIAAAA2AAAFcgAQAAAAAABGEhAAAAAAADYAAAWCABAAAAAAAAFAAAAAAIA:EQAACBIAEAABAAAARg4QAAAAAABGjiAAAAAAAAIAAAARAAAIIgAQAAEAAABGDhAAAAAAAEaOIAAAAAAAAwAAAAAAAAcSABAAAQAAABoAEAABAAAACgAQAAEAAAA2AAAFgiAQAAAAAAAaABAAAQAAADgAAAdCIBAAAAAAAAoAEAABAAAAAUAAAAAAAD8RAAAIEiAQAAAAAABGDhAAAAAAAEaOIAAAAAAAAAAAABEAAAgiIBAAAAAAAEYOEAAAAAAARo4gAAAAAAABAAAAPgAAAVNUQVR0AAAACgAAAAIAAAAAAAAAAgAAAAYAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-kha_Shaders.World_World_fragData0 = "s564:AAAARFhCQ2Qtm6U8N1I4gn:Knl0eH1EBAAAApAEAAAUAAAA0AAAAgAAAALQAAADoAAAAKAEAAFJERUZEAAAAAAAAAAAAAAAAAAAAHAAAAAAE::8AAQAAHAAAAE1pY3Jvc29mdCAoUikgSExTTCBTaGFkZXIgQ29tcGlsZXIgMTAuMQBJU0dOLAAAAAEAAAAIAAAAIAAAAAAAAAAAAAAAAwAAAAAAAAAHAAAAVEVYQ09PUkQAq6urT1NHTiwAAAABAAAACAAAACAAAAAAAAAAAAAAAAMAAAAAAAAADwAAAFNWX1RhcmdldACrq1NIRFI4AAAAQAAAAA4AAABlAAAD8iAQAAAAAAA2AAAI8iAQAAAAAAACQAAAcmNQPXJjUD1yY1A9AAAAAD4AAAFTVEFUdAAAAAIAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+kha_Shaders.Walls_mesh_fragData0 = "s1188:AAAARFhCQ1WnXBzNnpp48AMeBzmozmcBAAAAeAMAAAUAAAA0AAAAgAAAALQAAAAAAQAA:AIAAFJERUZEAAAAAAAAAAAAAAAAAAAAHAAAAAAE::8AAQAAHAAAAE1pY3Jvc29mdCAoUikgSExTTCBTaGFkZXIgQ29tcGlsZXIgMTAuMQBJU0dOLAAAAAEAAAAIAAAAIAAAAAAAAAAAAAAAAwAAAAAAAAAHBwAAVEVYQ09PUkQAq6urT1NHTkQAAAACAAAACAAAADgAAAAAAAAAAAAAAAMAAAAAAAAADwAAADgAAAABAAAAAAAAAAMAAAABAAAADwAAAFNWX1RhcmdldACrq1NIRFL0AQAAQAAAAH0AAABiEAADchAQAAAAAABlAAAD8iAQAAAAAABlAAAD8iAQAAEAAABoAAACAwAAABAAAAcSABAAAAAAAEYSEAAAAAAARhIQAAAAAABEAAAFEgAQAAAAAAAKABAAAAAAADgAAAdyABAAAAAAAAYAEAAAAAAAJhkQAAAAAAAAAAAJggAQAAAAAAAqABCAgQAAAAAAAAAaABCAgQAAAAAAAAAAAAAIggAQAAAAAAAKABCAgQAAAAAAAAA6ABAAAAAAAA4AAAdyABAAAAAAAEYCEAAAAAAA9g8QAAAAAAAAAAALMgAQAAEAAABmChCAwQAAAAAAAAACQAAAAACAPwAAgD8AAAAAAAAAAB0AAApyABAAAgAAAEYCEAAAAAAAAkAAAAAAAAAAAAAAAAAAAAAAAAA3AAAPkgAQAAAAAABWCRAAAgAAAAJAAAAAAIA:AAAAAAAAAAAAAIA:AkAAAAAAgL8AAAAAAAAAAAAAgL84AAAHkgAQAAAAAAAGDBAAAAAAAAYEEAABAAAANwAACTIgEAAAAAAABgAQAAIAAACWBRAAAAAAAMYAEAAAAAAANgAACMIgEAAAAAAAAkAAAAAAAAAAAAAAVn5CPwAAAAA2AAAI8iAQAAEAAAACQAAAzsxMP5%68j4AAAAA6SJ:Qz4AAAFTVEFUdAAAAA4AAAADAAAAAAAAAAMAAAAJAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+kha_Shaders.World_World_fragData0 = "s564:AAAARFhCQ%O1dXFC6CZHY33KHcWe26YBAAAApAEAAAUAAAA0AAAAgAAAALQAAADoAAAAKAEAAFJERUZEAAAAAAAAAAAAAAAAAAAAHAAAAAAE::8AAQAAHAAAAE1pY3Jvc29mdCAoUikgSExTTCBTaGFkZXIgQ29tcGlsZXIgMTAuMQBJU0dOLAAAAAEAAAAIAAAAIAAAAAAAAAAAAAAAAwAAAAAAAAAHAAAAVEVYQ09PUkQAq6urT1NHTiwAAAABAAAACAAAACAAAAAAAAAAAAAAAAMAAAAAAAAADwAAAFNWX1RhcmdldACrq1NIRFI4AAAAQAAAAA4AAABlAAAD8iAQAAAAAAA2AAAI8iAQAAAAAAACQAAAAAAAAAAAAAAAAAAAAAAAAD4AAAFTVEFUdAAAAAIAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 kha_Shaders.World_World_vertData0 = "s1240:Am5vcgAAcG9zAAEBJEdsb2JhbHMAAAFTTVZQAAAAAABAAAAABAREWEJDAWvUj:hTvlSpp43Hljh:kAEAAAB8AwAABQAAADQAAAD0AAAAQAEAAJgBAAAAAwAAUkRFRrgAAAABAAAASAAAAAEAAAAcAAAAAAT%:wABAACQAAAAPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAkR2xvYmFscwCrq6s8AAAAAQAAAGAAAABAAAAAAAAAAAAAAAB4AAAAAAAAAEAAAAACAAAAgAAAAAAAAABTTVZQAKurqwMAAwAEAAQAAAAAAAAAAABNaWNyb3NvZnQgKFIpIEhMU0wgU2hhZGVyIENvbXBpbGVyIDEwLjEASVNHTkQAAAACAAAACAAAADgAAAAAAAAAAAAAAAMAAAAAAAAABwcAADgAAAABAAAAAAAAAAMAAAABAAAABwcAAFRFWENPT1JEAKurq09TR05QAAAAAgAAAAgAAAA4AAAAAAAAAAAAAAADAAAAAAAAAAcIAABBAAAAAAAAAAEAAAADAAAAAQAAAA8AAABURVhDT09SRABTVl9Qb3NpdGlvbgCrq6tTSERSYAEAAEAAAQBYAAAAWQAABEaOIAAAAAAABAAAAF8AAANyEBAAAAAAAF8AAANyEBAAAQAAAGUAAANyIBAAAAAAAGcAAATyIBAAAQAAAAEAAABoAAACAgAAADYAAAVyIBAAAAAAAEYSEAAAAAAANgAABXIAEAAAAAAARhIQAAEAAAA2AAAFggAQAAAAAAABQAAAAACAPxEAAAgSABAAAQAAAEYOEAAAAAAARo4gAAAAAAACAAAAEQAACCIAEAABAAAARg4QAAAAAABGjiAAAAAAAAMAAAAAAAAHEgAQAAEAAAAaABAAAQAAAAoAEAABAAAANgAABYIgEAABAAAAGgAQAAEAAAA4AAAHQiAQAAEAAAAKABAAAQAAAAFAAAAAAAA:EQAACBIgEAABAAAARg4QAAAAAABGjiAAAAAAAAAAAAARAAAIIiAQAAEAAABGDhAAAAAAAEaOIAAAAAAAAQAAAD4AAAFTVEFUdAAAAAsAAAACAAAAAAAAAAQAAAAGAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 kha_Shaders.armdefaultskin_mesh_fragData0 = "s1188:AAAARFhCQ7EuHsILl%5enEQH5Obb60EBAAAAeAMAAAUAAAA0AAAAgAAAALQAAAAAAQAA:AIAAFJERUZEAAAAAAAAAAAAAAAAAAAAHAAAAAAE::8AAQAAHAAAAE1pY3Jvc29mdCAoUikgSExTTCBTaGFkZXIgQ29tcGlsZXIgMTAuMQBJU0dOLAAAAAEAAAAIAAAAIAAAAAAAAAAAAAAAAwAAAAAAAAAHBwAAVEVYQ09PUkQAq6urT1NHTkQAAAACAAAACAAAADgAAAAAAAAAAAAAAAMAAAAAAAAADwAAADgAAAABAAAAAAAAAAMAAAABAAAADwAAAFNWX1RhcmdldACrq1NIRFL0AQAAQAAAAH0AAABiEAADchAQAAAAAABlAAAD8iAQAAAAAABlAAAD8iAQAAEAAABoAAACAwAAABAAAAcSABAAAAAAAEYSEAAAAAAARhIQAAAAAABEAAAFEgAQAAAAAAAKABAAAAAAADgAAAdyABAAAAAAAAYAEAAAAAAAJhkQAAAAAAAAAAAJggAQAAAAAAAqABCAgQAAAAAAAAAaABCAgQAAAAAAAAAAAAAIggAQAAAAAAAKABCAgQAAAAAAAAA6ABAAAAAAAA4AAAdyABAAAAAAAEYCEAAAAAAA9g8QAAAAAAAAAAALMgAQAAEAAABmChCAwQAAAAAAAAACQAAAAACAPwAAgD8AAAAAAAAAAB0AAApyABAAAgAAAEYCEAAAAAAAAkAAAAAAAAAAAAAAAAAAAAAAAAA3AAAPkgAQAAAAAABWCRAAAgAAAAJAAAAAAIA:AAAAAAAAAAAAAIA:AkAAAAAAgL8AAAAAAAAAAAAAgL84AAAHkgAQAAAAAAAGDBAAAAAAAAYEEAABAAAANwAACTIgEAAAAAAABgAQAAIAAACWBRAAAAAAAMYAEAAAAAAANgAACMIgEAAAAAAAAkAAAAAAAAAAAAAAAAAAPwAAAAA2AAAI8iAQAAEAAAACQAAAzcxMP83MTD:NzEw:AEB:Qz4AAAFTVEFUdAAAAA4AAAADAAAAAAAAAAMAAAAJAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 kha_Shaders.armdefaultskin_mesh_vertData0 = "s3999:BGJvbmUAAG5vcgABcG9zAAJ3ZWlnaHQAAwEkR2xvYmFscwAABHNraW5Cb25lcwAAAAAAIAQAAAQBcG9zVW5wYWNrACAEAAAEAAAAAQFOADAEAAAsAAAAAwNXVlAAYAQAAEAAAAAEBERYQkPMlFH8Z3X6tdd:COynT73nAQAAAFALAAAFAAAANAAAAIQBAAAAAgAAWAIAANQKAABSREVGSAEAAAEAAABIAAAAAQAAABwAAAAABP7:AAEAACABAAA8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAACRHbG9iYWxzAKurqzwAAAAEAAAAYAAAAKAEAAAAAAAAAAAAAMAAAAAAAAAAIAQAAAIAAADMAAAAAAAAANwAAAAgBAAABAAAAAIAAADoAAAAAAAAAPgAAAAwBAAALAAAAAIAAAD8AAAAAAAAAAwBAABgBAAAQAAAAAIAAAAQAQAAAAAAAHNraW5Cb25lcwCrqwEAAwABAAQAQgAAAAAAAABwb3NVbnBhY2sAq6sAAAMAAQABAAAAAAAAAAAATgCrqwMAAwADAAMAAAAAAAAAAABXVlAAAwADAAQABAAAAAAAAAAAAE1pY3Jvc29mdCAoUikgSExTTCBTaGFkZXIgQ29tcGlsZXIgMTAuMQBJU0dOdAAAAAQAAAAIAAAAaAAAAAAAAAAAAAAAAwAAAAAAAAAPDwAAaAAAAAEAAAAAAAAAAwAAAAEAAAADAwAAaAAAAAIAAAAAAAAAAwAAAAIAAAAPDwAAaAAAAAMAAAAAAAAAAwAAAAMAAAAPDwAAVEVYQ09PUkQAq6urT1NHTlAAAAACAAAACAAAADgAAAAAAAAAAAAAAAMAAAAAAAAABwgAAEEAAAAAAAAAAQAAAAMAAAABAAAADwAAAFRFWENPT1JEAFNWX1Bvc2l0aW9uAKurq1NIRFJ0CAAAQAABAB0CAABZCAAERo4gAAAAAABKAAAAXwAAA:IQEAAAAAAAXwAAAzIQEAABAAAAXwAAA:IQEAACAAAAXwAAA:IQEAADAAAAZQAAA3IgEAAAAAAAZwAABPIgEAABAAAAAQAAAGgAAAIGAAAAOAAACvIAEAAAAAAARh4QAAAAAAACQAAAAP7:RgD%:0YA:v9GAP7:RhsAAAXyABAAAAAAAEYOEAAAAAAAKQAAB:IAEAAAAAAARg4QAAAAAAABQAAAAQAAABEAAAsSABAAAQAAAEaOIAQAAAAACgAQAAAAAABGjiAEAAAAADoAEAAAAAAAEQAACyIAEAABAAAARo4gBAAAAAAaABAAAAAAAEaOIAQAAAAAOgAQAAAAAAARAAALQgAQAAEAAABGjiAEAAAAACoAEAAAAAAARo4gBAAAAAA6ABAAAAAAADEAAApyABAAAgAAAAJAAAAAAAAAAAAAAAAAAAAAAAAARgIQAAEAAAAxAAAKcgAQAAEAAABGAhAAAQAAAAJAAAAAAAAAAAAAAAAAAAAAAAAAHgAACHIAEAABAAAARgIQgEEAAAACAAAARgIQAAEAAAArAAAFcgAQAAEAAABGAhAAAQAAADgAAAdyABAAAQAAAEYCEAABAAAARhIQAAMAAAA4AAAJ8gAQAAIAAABWBRAAAQAAAEaOIAQAAAAAGgAQAAAAAAAyAAAL8gAQAAIAAAAGABAAAQAAAEaOIAQAAAAACgAQAAAAAABGDhAAAgAAADIAAAvyABAAAgAAAKYKEAABAAAARo4gBAAAAAAqABAAAAAAAEYOEAACAAAAMgAAC:IAEAACAAAA9h8QAAMAAABGjiAEAAAAADoAEAAAAAAARg4QAAIAAAAeAAAK8gAQAAAAAABGDhAAAAAAAAJAAAABAAAAAQAAAAEAAAABAAAAEQAAB4IAEAABAAAARg4QAAIAAABGDhAAAgAAAEsAAAWCABAAAQAAADoAEAABAAAADgAACoIAEAABAAAAAkAAAAAAgD8AAIA:AACAPwAAgD86ABAAAQAAADgAAAfyABAAAgAAAPYPEAABAAAARg4QAAIAAAA2AAAFQgAQAAMAAAA6EBAAAgAAADYAAAUyABAAAwAAAEYQEAABAAAAOAAAB3IAEAAEAAAARgIQAAIAAAAmCRAAAwAAADIAAApyABAABAAAACYJEAACAAAARgIQAAMAAABGAhCAQQAAAAQAAAAyAAAJcgAQAAQAAACWBBAAAwAAAPYPEAACAAAARgIQAAQAAAA4AAAHcgAQAAUAAAAmCRAAAgAAAEYCEAAEAAAAMgAACnIAEAAEAAAAlgQQAAIAAACWBBAABAAAAEYCEIBBAAAABQAAADIAAAxyABAAAwAAAEYCEAAEAAAAAkAAAAAAAEAAAABAAAAAQAAAAABGAhAAAwAAABAAAAgSABAABAAAAEYCEAADAAAARoIgAAAAAABDAAAAEAAACCIAEAAEAAAARgIQAAMAAABGgiAAAAAAAEQAAAAQAAAIQgAQAAQAAABGAhAAAwAAAEaCIAAAAAAARQAAABAAAAcSABAAAwAAAEYCEAAEAAAARgIQAAQAAABEAAAFEgAQAAMAAAAKABAAAwAAADgAAAdyIBAAAAAAAAYAEAADAAAARgIQAAQAAAA4AAAJ8gAQAAMAAABWBRAAAQAAAEaOIAQAAAAAGgAQAAAAAAAyAAAL8gAQAAMAAAAGABAAAQAAAEaOIAQAAAAACgAQAAAAAABGDhAAAwAAADIAAAvyABAAAwAAAKYKEAABAAAARo4gBAAAAAAqABAAAAAAAEYOEAADAAAAMgAAC:IAEAAAAAAA9h8QAAMAAABGjiAEAAAAADoAEAAAAAAARg4QAAMAAAA4AAAH8gAQAAAAAAD2DxAAAQAAAEYOEAAAAAAAOAAAB3IAEAABAAAA9g8QAAAAAABGAhAAAgAAADIAAApyABAAAQAAAEYCEAAAAAAA9g8QAAIAAABGAhCAQQAAAAEAAAA4AAAHcgAQAAMAAACWBBAAAAAAACYJEAACAAAAMgAACnIAEAAAAAAAlgQQAAIAAAAmCRAAAAAAAEYCEIBBAAAAAwAAAAAAAAdyABAAAAAAAEYCEAAAAAAARgIQAAEAAAA4AAAIcgAQAAEAAABGEhAAAgAAAAaAIAAAAAAAQgAAADgAAAdyABAAAwAAACYJEAABAAAARgIQAAIAAAAyAAAKcgAQAAMAAAAmCRAAAgAAAEYCEAABAAAARgIQgEEAAAADAAAAMgAACXIAEAADAAAAlgQQAAEAAAD2DxAAAgAAAEYCEAADAAAAOAAAB3IAEAAEAAAAJgkQAAIAAABGAhAAAwAAADIAAApyABAAAgAAAJYEEAACAAAAlgQQAAMAAABGAhCAQQAAAAQAAAAyAAAMcgAQAAEAAABGAhAAAgAAAAJAAAAAAABAAAAAQAAAAEAAAAAARgIQAAEAAAAyAAAMcgAQAAAAAABGAhAAAAAAAAJAAAAAAABAAAAAQAAAAEAAAAAARgIQAAEAAAAOAAAIcgAQAAAAAABGAhAAAAAAAAaAIAAAAAAAQgAAADYAAAWCABAAAAAAAAFAAAAAAIA:EQAACBIAEAABAAAARg4QAAAAAABGjiAAAAAAAEgAAAARAAAIIgAQAAEAAABGDhAAAAAAAEaOIAAAAAAASQAAAAAAAAcSABAAAQAAABoAEAABAAAACgAQAAEAAAA2AAAFgiAQAAEAAAAaABAAAQAAADgAAAdCIBAAAQAAAAoAEAABAAAAAUAAAAAAAD8RAAAIEiAQAAEAAABGDhAAAAAAAEaOIAAAAAAARgAAABEAAAgiIBAAAQAAAEYOEAAAAAAARo4gAAAAAABHAAAAPgAAAVNUQVR0AAAAPgAAAAYAAAAAAAAABgAAADQAAAADAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-kha_Shaders.armdefaultskin_shadowmap_fragData0 = "s410:AAAARFhCQ3%xd:YuyuL2W1XcJlZCEbQBAAAAMAEAAAUAAAA0AAAAgAAAAJAAAACgAAAAtAAAAFJERUZEAAAAAAAAAAAAAAAAAAAAHAAAAAAE::8AAQAAHAAAAE1pY3Jvc29mdCAoUikgSExTTCBTaGFkZXIgQ29tcGlsZXIgMTAuMQBJU0dOCAAAAAAAAAAIAAAAT1NHTggAAAAAAAAACAAAAFNIRFIMAAAAQAAAAAMAAAA%AAABU1RBVHQAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-kha_Shaders.armdefaultskin_shadowmap_vertData0 = "s3236:A2JvbmUAAHBvcwABd2VpZ2h0AAIBJEdsb2JhbHMAAANza2luQm9uZXMAAAAAACAEAAAEAXBvc1VucGFjawAgBAAABAAAAAEBTFdWUAAwBAAAQAAAAAQERFhCQ8lEI4MchG0jt3F1tuLa3tsBAAAAJAkAAAUAAAA0AAAAXAEAAMABAAD0AQAAqAgAAFJERUYgAQAAAQAAAEgAAAABAAAAHAAAAAAE:v8AAQAA%AAAADwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAJEdsb2JhbHMAq6urPAAAAAMAAABgAAAAcAQAAAAAAAAAAAAAqAAAAAAAAAAgBAAAAgAAALQAAAAAAAAAxAAAACAEAAAEAAAAAgAAANAAAAAAAAAA4AAAADAEAABAAAAAAgAAAOgAAAAAAAAAc2tpbkJvbmVzAKurAQADAAEABABCAAAAAAAAAHBvc1VucGFjawCrqwAAAwABAAEAAAAAAAAAAABMV1ZQAKurqwMAAwAEAAQAAAAAAAAAAABNaWNyb3NvZnQgKFIpIEhMU0wgU2hhZGVyIENvbXBpbGVyIDEwLjEASVNHTlwAAAADAAAACAAAAFAAAAAAAAAAAAAAAAMAAAAAAAAADw8AAFAAAAABAAAAAAAAAAMAAAABAAAADwcAAFAAAAACAAAAAAAAAAMAAAACAAAADw8AAFRFWENPT1JEAKurq09TR04sAAAAAQAAAAgAAAAgAAAAAAAAAAEAAAADAAAAAAAAAA8AAABTVl9Qb3NpdGlvbgBTSERSrAYAAEAAAQCrAQAAWQgABEaOIAAAAAAARwAAAF8AAAPyEBAAAAAAAF8AAANyEBAAAQAAAF8AAAPyEBAAAgAAAGcAAATyIBAAAAAAAAEAAABoAAACBQAAADgAAAryABAAAAAAAEYeEAAAAAAAAkAAAAD%:0YA:v9GAP7:RgD%:0YbAAAF8gAQAAAAAABGDhAAAAAAACkAAAfyABAAAAAAAEYOEAAAAAAAAUAAAAEAAAARAAALEgAQAAEAAABGjiAEAAAAAAoAEAAAAAAARo4gBAAAAAA6ABAAAAAAABEAAAsiABAAAQAAAEaOIAQAAAAAGgAQAAAAAABGjiAEAAAAADoAEAAAAAAAEQAAC0IAEAABAAAARo4gBAAAAAAqABAAAAAAAEaOIAQAAAAAOgAQAAAAAAAxAAAKcgAQAAIAAAACQAAAAAAAAAAAAAAAAAAAAAAAAEYCEAABAAAAMQAACnIAEAABAAAARgIQAAEAAAACQAAAAAAAAAAAAAAAAAAAAAAAAB4AAAhyABAAAQAAAEYCEIBBAAAAAgAAAEYCEAABAAAAKwAABXIAEAABAAAARgIQAAEAAAA4AAAHcgAQAAEAAABGAhAAAQAAAEYSEAACAAAAOAAACfIAEAACAAAAVgUQAAEAAABGjiAEAAAAABoAEAAAAAAAMgAAC:IAEAACAAAABgAQAAEAAABGjiAEAAAAAAoAEAAAAAAARg4QAAIAAAAyAAAL8gAQAAIAAACmChAAAQAAAEaOIAQAAAAAKgAQAAAAAABGDhAAAgAAADIAAAvyABAAAgAAAPYfEAACAAAARo4gBAAAAAA6ABAAAAAAAEYOEAACAAAAHgAACvIAEAAAAAAARg4QAAAAAAACQAAAAQAAAAEAAAABAAAAAQAAABEAAAeCABAAAQAAAEYOEAACAAAARg4QAAIAAABLAAAFggAQAAEAAAA6ABAAAQAAAA4AAAqCABAAAQAAAAJAAAAAAIA:AACAPwAAgD8AAIA:OgAQAAEAAAA4AAAJ8gAQAAMAAABWBRAAAQAAAEaOIAQAAAAAGgAQAAAAAAAyAAAL8gAQAAMAAAAGABAAAQAAAEaOIAQAAAAACgAQAAAAAABGDhAAAwAAADIAAAvyABAAAwAAAKYKEAABAAAARo4gBAAAAAAqABAAAAAAAEYOEAADAAAAMgAAC:IAEAAAAAAA9h8QAAIAAABGjiAEAAAAADoAEAAAAAAARg4QAAMAAAA4AAAH8gAQAAAAAAD2DxAAAQAAAEYOEAAAAAAAOAAAB:IAEAABAAAA9g8QAAEAAABGDhAAAgAAADgAAAdyABAAAgAAAPYPEAAAAAAARgIQAAEAAAAyAAAKcgAQAAIAAABGAhAAAAAAAPYPEAABAAAARgIQgEEAAAACAAAAOAAAB3IAEAADAAAAlgQQAAAAAAAmCRAAAQAAADIAAApyABAAAAAAAJYEEAABAAAAJgkQAAAAAABGAhCAQQAAAAMAAAAAAAAHcgAQAAAAAABGAhAAAAAAAEYCEAACAAAAOAAACHIAEAACAAAARhIQAAEAAAAGgCAAAAAAAEIAAAA4AAAHcgAQAAMAAABGAhAAAQAAACYJEAACAAAAMgAACnIAEAADAAAAJgkQAAEAAABGAhAAAgAAAEYCEIBBAAAAAwAAADIAAAlyABAAAwAAAJYEEAACAAAA9g8QAAEAAABGAhAAAwAAADgAAAdyABAABAAAACYJEAABAAAARgIQAAMAAAAyAAAKcgAQAAEAAACWBBAAAQAAAJYEEAADAAAARgIQgEEAAAAEAAAAMgAADHIAEAABAAAARgIQAAEAAAACQAAAAAAAQAAAAEAAAABAAAAAAEYCEAACAAAAMgAADHIAEAAAAAAARgIQAAAAAAACQAAAAAAAQAAAAEAAAABAAAAAAEYCEAABAAAADgAACHIAEAAAAAAARgIQAAAAAAAGgCAAAAAAAEIAAAA2AAAFggAQAAAAAAABQAAAAACAPxEAAAgSABAAAQAAAEYOEAAAAAAARo4gAAAAAABFAAAAEQAACCIAEAABAAAARg4QAAAAAABGjiAAAAAAAEYAAAAAAAAHEgAQAAEAAAAaABAAAQAAAAoAEAABAAAANgAABYIgEAAAAAAAGgAQAAEAAAA4AAAHQiAQAAAAAAAKABAAAQAAAAFAAAAAAAA:EQAACBIgEAAAAAAARg4QAAAAAABGjiAAAAAAAEMAAAARAAAIIiAQAAAAAABGDhAAAAAAAEaOIAAAAAAARAAAAD4AAAFTVEFUdAAAADAAAAAFAAAAAAAAAAQAAAAoAAAAAwAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-kha_Shaders.blur_edge_pass_fragData0 = "s3976:AAVfZ2J1ZmZlcjBfc2FtcGxlcgAAX3RleF9zYW1wbGVyAAFnYnVmZmVyMAAAdGV4AAEkR2xvYmFscwAAAWRpckludgAAAAAACAAAAAIBRFhCQ0xqlwn7DEcTh2cykaQu8nABAAAAWAsAAAUAAAA0AAAAoAEAANQBAAAIAgAA3AoAAFJERUZkAQAAAQAAAPQAAAAFAAAAHAAAAAAE::8AAQAAPAEAALwAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAABAAAAzgAAAAMAAAAAAAAAAAAAAAAAAAABAAAAAQAAAAEAAADbAAAAAgAAAAUAAAAEAAAA:::::wAAAAABAAAADQAAAOQAAAACAAAABQAAAAQAAAD:::::AQAAAAEAAAANAAAA6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAABfZ2J1ZmZlcjBfc2FtcGxlcgBfdGV4X3NhbXBsZXIAZ2J1ZmZlcjAAdGV4ACRHbG9iYWxzAKurq%gAAAABAAAADAEAABAAAAAAAAAAAAAAACQBAAAAAAAACAAAAAIAAAAsAQAAAAAAAGRpckludgCrAQADAAEAAgAAAAAAAAAAAE1pY3Jvc29mdCAoUikgSExTTCBTaGFkZXIgQ29tcGlsZXIgMTAuMQBJU0dOLAAAAAEAAAAIAAAAIAAAAAAAAAAAAAAAAwAAAAAAAAADAwAAVEVYQ09PUkQAq6urT1NHTiwAAAABAAAACAAAACAAAAAAAAAAAAAAAAMAAAAAAAAAAQ4AAFNWX1RhcmdldACrq1NIRFLMCAAAQAAAADMCAAA1GAAAKgAAAPTABz4AAAAAAAAAAAAAAAC7ewA%AAAAAAAAAAAAAAAAFtrZPQAAAAAAAAAAAAAAAPxvpT0AAAAAAAAAAAAAAABAE2E9AAAAAAAAAAAAAAAAbCQJPQAAAAAAAAAAAAAAAHS1lTwAAAAAAAAAAAAAAADpXxI8AAAAAAAAAAAAAAAAPDCAOwAAAAAAAAAAAAAAAA4yyToAAAAAAAAAAAAAAABZAAAERo4gAAAAAAABAAAAWgAAAwBgEAAAAAAAWgAAAwBgEAABAAAAWBgABABwEAAAAAAAVVUAAFgYAAQAcBAAAQAAAFVVAABiEAADMhAQAAAAAABlAAADEiAQAAAAAABoAAACBgAAAEgAAAvyABAAAAAAAEYQEAAAAAAARn4QAAAAAAAAYBAAAAAAAAFAAAAAAAAAAAAAC3IAEAABAAAARgAQgMEAAAAAAAAAAkAAAAAAgD8AAIA:AACAPwAAAAAAAAAIQgAQAAIAAAAaABCAwQAAAAAAAAAKABAAAQAAAB0AAAdCABAAAAAAACoAEAACAAAAAUAAAAAAAAAdAAAKkgAQAAEAAAAGBBAAAAAAAAJAAAAAAAAAAAAAAAAAAAAAAAAANwAAD5IAEAABAAAABgwQAAEAAAACQAAAAACAPwAAAAAAAAAAAACAPwJAAAAAAIC:AAAAAAAAAAAAAIC:OAAABzIAEAABAAAAxgAQAAEAAACWBRAAAQAAADcAAAkyABAAAgAAAKYKEAAAAAAARgAQAAAAAABGABAAAQAAABAAAAcSABAAAAAAAEYCEAACAAAARgIQAAIAAABEAAAFEgAQAAAAAAAKABAAAAAAADgAAAdyABAAAAAAAAYAEAAAAAAARgIQAAIAAABIAAAL8gAQAAEAAABGEBAAAAAAAEZ%EAABAAAAAGAQAAEAAAABQAAAAAAAADgAAAeCABAAAAAAAAoAEAABAAAAAUAAAPTABz42AAAFEgAQAAEAAAA6ABAAAAAAADYAAAhiABAAAQAAAAJAAAAAAAAA9MAHPgEAAAAAAAAAMAAAASEAAAeCABAAAQAAACoAEAABAAAAAUAAAAgAAAADAAQDOgAQAAEAAAArAAAFggAQAAEAAAAqABAAAQAAADIAAAoyABAAAgAAAEaAIAAAAAAAAAAAAPYPEAABAAAARhAQAAAAAABIAAAL8gAQAAMAAABGABAAAgAAAEZ%EAAAAAAAAGAQAAAAAAABQAAAAAAAAAAAAAtyABAABAAAAEYAEIDBAAAAAwAAAAJAAAAAAIA:AACAPwAAgD8AAAAAAAAACEIAEAAFAAAAGgAQgMEAAAADAAAACgAQAAQAAAAdAAAHQgAQAAIAAAAqABAABQAAAAFAAAAAAAAAHQAACsIAEAADAAAABgQQAAMAAAACQAAAAAAAAAAAAAAAAAAAAAAAADcAAA:CABAAAwAAAKYOEAADAAAAAkAAAAAAAAAAAAAAAACAPwAAgD8CQAAAAAAAAAAAAAAAAIC:AACAvzgAAAfCABAAAwAAAKYOEAADAAAAVgkQAAQAAAA3AAAJMgAQAAUAAACmChAAAgAAAEYAEAADAAAA5goQAAMAAAAQAAAHQgAQAAIAAABGAhAABQAAAEYCEAAFAAAARAAABUIAEAACAAAAKgAQAAIAAAA4AAAHcgAQAAMAAACmChAAAgAAAEYCEAAFAAAAEAAAB0IAEAACAAAARgIQAAMAAABGAhAAAAAAAB0AAAdCABAAAgAAACoAEAACAAAAAUAAADMzcz8BAAAHQgAQAAIAAAAqABAAAgAAAAFAAAAAAIA:SAAAC:IAEAADAAAARgAQAAIAAABGfhAAAQAAAABgEAABAAAAAUAAAAAAAAA4AAAIEgAQAAIAAAAqABAAAgAAAAqQkAAqABAAAQAAADIAAAkSABAAAgAAAAoAEAADAAAACgAQAAIAAAAKABAAAQAAADIAAAoiABAAAgAAAAqQkAAqABAAAQAAACoAEAACAAAAGgAQAAEAAAAyAAALwgAQAAIAAAAGhCCAQQAAAAAAAAAAAAAA9g8QAAEAAAAGFBAAAAAAAEgAAAvyABAAAwAAAOYKEAACAAAARn4QAAAAAAAAYBAAAAAAAAFAAAAAAAAAAAAAC3IAEAAEAAAARgAQgMEAAAADAAAAAkAAAAAAgD8AAIA:AACAPwAAAAAAAAAIQgAQAAUAAAAaABCAwQAAAAMAAAAKABAABAAAAB0AAAeCABAAAQAAACoAEAAFAAAAAUAAAAAAAAAdAAAKwgAQAAMAAAAGBBAAAwAAAAJAAAAAAAAAAAAAAAAAAAAAAAAANwAAD8IAEAADAAAApg4QAAMAAAACQAAAAAAAAAAAAAAAAIA:AACAPwJAAAAAAAAAAAAAAAAAgL8AAIC:OAAAB8IAEAADAAAApg4QAAMAAABWCRAABAAAADcAAAkyABAABQAAAPYPEAABAAAARgAQAAMAAADmChAAAwAAABAAAAeCABAAAQAAAEYCEAAFAAAARgIQAAUAAABEAAAFggAQAAEAAAA6ABAAAQAAADgAAAdyABAAAwAAAPYPEAABAAAARgIQAAUAAAAQAAAHggAQAAEAAABGAhAAAwAAAEYCEAAAAAAAHQAAB4IAEAABAAAAOgAQAAEAAAABQAAAMzNzPwEAAAeCABAAAQAAADoAEAABAAAAAUAAAAAAgD9IAAAL8gAQAAMAAADmChAAAgAAAEZ%EAABAAAAAGAQAAEAAAABQAAAAAAAADgAAAhCABAAAgAAADoAEAABAAAACpCQACoAEAABAAAAMgAACRIAEAABAAAACgAQAAMAAAAqABAAAgAAAAoAEAACAAAAMgAACiIAEAABAAAACpCQACoAEAABAAAAOgAQAAEAAAAaABAAAgAAAB4AAAdCABAAAQAAACoAEAABAAAAAUAAAAEAAAAWAAABDgAABxIgEAAAAAAACgAQAAEAAAAaABAAAQAAAD4AAAFTVEFUdAAAAD0AAAAGAAAACgAAAAIAAAAmAAAAAgAAAAIAAAABAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAACAAAABgAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-kha_Shaders.compositor_pass_fragData0 = "s1267:AAJfdGV4X3NhbXBsZXIAAHRleAAAAERYQkPn3cdpLWbk399KZBMjuHcJAQAAAKADAAAFAAAANAAAANQAAAAIAQAAPAEAACQDAABSREVGmAAAAAAAAAAAAAAAAgAAABwAAAAABP::AAEAAG0AAABcAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAGkAAAACAAAABQAAAAQAAAD:::::AAAAAAEAAAANAAAAX3RleF9zYW1wbGVyAHRleABNaWNyb3NvZnQgKFIpIEhMU0wgU2hhZGVyIENvbXBpbGVyIDEwLjEAq6urSVNHTiwAAAABAAAACAAAACAAAAAAAAAAAAAAAAMAAAAAAAAAAwMAAFRFWENPT1JEAKurq09TR04sAAAAAQAAAAgAAAAgAAAAAAAAAAAAAAADAAAAAAAAAA8AAABTVl9UYXJnZXQAq6tTSERS4AEAAEAAAAB4AAAAWgAAAwBgEAAAAAAAWBgABABwEAAAAAAAVVUAAGIQAAMyEBAAAAAAAGUAAAPyIBAAAAAAAGgAAAIDAAAASAAAC:IAEAAAAAAARhAQAAAAAABGfhAAAAAAAABgEAAAAAAAAUAAAAAAAAAzAAAKcgAQAAAAAABGAhAAAAAAAAJAAAAA4P9GAOD:RgDg:0YAAAAANgAABYIgEAAAAAAAOgAQAAAAAAAAAAAKcgAQAAAAAABGAhAAAAAAAAJAAABvEoO7bxKDu28Sg7sAAAAANAAACnIAEAAAAAAARgIQAAAAAAACQAAAAAAAAAAAAAAAAAAAAAAAADIAAA9yABAAAQAAAEYCEAAAAAAAAkAAAGZmxkBmZsZAZmbGQAAAAAACQAAAAAAAPwAAAD8AAAA:AAAAADgAAAdyABAAAQAAAEYCEAAAAAAARgIQAAEAAAAyAAAPcgAQAAIAAABGAhAAAAAAAAJAAABmZsZAZmbGQGZmxkAAAAAAAkAAAJqZ2T%amdk:mpnZPwAAAAAyAAAMcgAQAAAAAABGAhAAAAAAAEYCEAACAAAAAkAAAI:CdT2PwnU9j8J1PQAAAAAOAAAHciAQAAAAAABGAhAAAQAAAEYCEAAAAAAAPgAAAVNUQVR0AAAACwAAAAMAAAAAAAAAAgAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-kha_Shaders.compositor_pass_vertData0 = "s763:AXBvcwAAAABEWEJDtpmVVJ2wtBYIEKtdn7IyBgEAAAA0AgAABQAAADQAAACAAAAAtAAAAAwBAAC4AQAAUkRFRkQAAAAAAAAAAAAAAAAAAAAcAAAAAAT%:wABAAAcAAAATWljcm9zb2Z0IChSKSBITFNMIFNoYWRlciBDb21waWxlciAxMC4xAElTR04sAAAAAQAAAAgAAAAgAAAAAAAAAAAAAAADAAAAAAAAAAMDAABURVhDT09SRACrq6tPU0dOUAAAAAIAAAAIAAAAOAAAAAAAAAAAAAAAAwAAAAAAAAADDAAAQQAAAAAAAAABAAAAAwAAAAEAAAAPAAAAVEVYQ09PUkQAU1ZfUG9zaXRpb24Aq6urU0hEUqQAAABAAAEAKQAAAF8AAAMyEBAAAAAAAGUAAAMyIBAAAAAAAGcAAATyIBAAAQAAAAEAAAAyAAAPMiAQAAAAAABGEBAAAAAAAAJAAAAAAAA:AAAAvwAAAAAAAAAAAkAAAAAAAD8AAAA:AAAAAAAAAAA2AAAFMiAQAAEAAABGEBAAAAAAADYAAAjCIBAAAQAAAAJAAAAAAAAAAAAAAAAAAD8AAIA:PgAAAVNUQVR0AAAABAAAAAAAAAAAAAAAAwAAAAEAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-kha_Shaders.deferred_light_fragData0 = "s12071:AA5fc2hhZG93TWFwUG9pbnRfc2FtcGxlcgAAX2didWZmZXIwX3NhbXBsZXIAAV9nYnVmZmVyMV9zYW1wbGVyAAJfZ2J1ZmZlckRfc2FtcGxlcgADX3NlbnZtYXBSYWRpYW5jZV9zYW1wbGVyAAVfc3Nhb3RleF9zYW1wbGVyAAZzaGFkb3dNYXBQb2ludAAAZ2J1ZmZlcjAAAWdidWZmZXIxAAJnYnVmZmVyRAADc2Vudm1hcEJyZGYABHNlbnZtYXBSYWRpYW5jZQAFc3Nhb3RleAAGJEdsb2JhbHMAAAtsaWdodFByb2oAAAAAAAgAAAACAWV5ZQAQAAAADAAAAAMBZXllTG9vawAgAAAADAAAAAMBY2FtZXJhUHJvagAwAAAACAAAAAIBc2hpcnIAQAAAAHAAAAAEAWVudm1hcE51bU1pcG1hcHMAsAAAAAQAAAABAWVudm1hcFN0cmVuZ3RoALQAAAAEAAAAAQFwb2ludFBvcwDAAAAADAAAAAMBcG9pbnRDb2wA0AAAAAwAAAADAXBvaW50QmlhcwDcAAAABAAAAAEBY2FzRGF0YQDgAAAAQAEAAAQBRFhCQxrXAhdP4mIp2iSPpZ7daVIBAAAApCEAAAUAAAA0AAAABAUAAFAFAACEBQAAKCEAAFJERUbIBAAAAQAAAKwCAAAOAAAAHAAAAAAE::8AAQAAoAQAANwBAAADAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAADAAAA9AEAAAMAAAAAAAAAAAAAAAAAAAABAAAAAQAAAAEAAAAGAgAAAwAAAAAAAAAAAAAAAAAAAAIAAAABAAAAAQAAABgCAAADAAAAAAAAAAAAAAAAAAAAAwAAAAEAAAABAAAAKgIAAAMAAAAAAAAAAAAAAAAAAAAFAAAAAQAAAAEAAABDAgAAAwAAAAAAAAAAAAAAAAAAAAYAAAABAAAAAQAAAFQCAAACAAAABQAAAAkAAAD:::::AAAAAAEAAAANAAAAYwIAAAIAAAAFAAAABAAAAP::::8BAAAAAQAAAA0AAABsAgAAAgAAAAUAAAAEAAAA:::::wIAAAABAAAADQAAAHUCAAACAAAABQAAAAQAAAD:::::AwAAAAEAAAANAAAAfgIAAAIAAAAFAAAABAAAAP::::8EAAAAAQAAAA0AAACKAgAAAgAAAAUAAAAEAAAA:::::wUAAAABAAAADQAAAJoCAAACAAAABQAAAAQAAAD:::::BgAAAAEAAAANAAAAogIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAABfc2hhZG93TWFwUG9pbnRfc2FtcGxlcgBfZ2J1ZmZlcjBfc2FtcGxlcgBfZ2J1ZmZlcjFfc2FtcGxlcgBfZ2J1ZmZlckRfc2FtcGxlcgBfc2Vudm1hcFJhZGlhbmNlX3NhbXBsZXIAX3NzYW90ZXhfc2FtcGxlcgBzaGFkb3dNYXBQb2ludABnYnVmZmVyMABnYnVmZmVyMQBnYnVmZmVyRABzZW52bWFwQnJkZgBzZW52bWFwUmFkaWFuY2UAc3Nhb3RleAAkR2xvYmFscwCrogIAAAsAAADEAgAAIAIAAAAAAAAAAAAAzAMAAAAAAAAIAAAAAgAAANgDAAAAAAAA6AMAABAAAAAMAAAAAgAAAOwDAAAAAAAA:AMAACAAAAAMAAAAAgAAAOwDAAAAAAAABAQAADAAAAAIAAAAAgAAANgDAAAAAAAADwQAAEAAAABwAAAAAgAAABgEAAAAAAAAKAQAALAAAAAEAAAAAgAAADwEAAAAAAAATAQAALQAAAAEAAAAAgAAAFwEAAAAAAAAbAQAAMAAAAAMAAAAAgAAAOwDAAAAAAAAdQQAANAAAAAMAAAAAgAAAOwDAAAAAAAAfgQAANwAAAAEAAAAAgAAAFwEAAAAAAAAiAQAAOAAAABAAQAAAAAAAJAEAAAAAAAAbGlnaHRQcm9qAKurAQADAAEAAgAAAAAAAAAAAGV5ZQABAAMAAQADAAAAAAAAAAAAZXllTG9vawBjYW1lcmFQcm9qAHNoaXJyAKurqwEAAwABAAQABwAAAAAAAABlbnZtYXBOdW1NaXBtYXBzAKurqwAAAgABAAEAAAAAAAAAAABlbnZtYXBTdHJlbmd0aACrAAADAAEAAQAAAAAAAAAAAHBvaW50UG9zAHBvaW50Q29sAHBvaW50QmlhcwBjYXNEYXRhAAEAAwABAAQAFAAAAAAAAABNaWNyb3NvZnQgKFIpIEhMU0wgU2hhZGVyIENvbXBpbGVyIDEwLjEASVNHTkQAAAACAAAACAAAADgAAAAAAAAAAAAAAAMAAAAAAAAAAwMAADgAAAABAAAAAAAAAAMAAAABAAAABwcAAFRFWENPT1JEAKurq09TR04sAAAAAQAAAAgAAAAgAAAAAAAAAAAAAAADAAAAAAAAAA8AAABTVl9UYXJnZXQAq6tTSERSnBsAAEAAAADnBgAAWQAABEaOIAAAAAAADgAAAFoIAAMAYBAAAAAAAFoAAAMAYBAAAQAAAFoAAAMAYBAAAgAAAFoAAAMAYBAAAwAAAFoAAAMAYBAABQAAAFoAAAMAYBAABgAAAFgwAAQAcBAAAAAAAFVVAABYGAAEAHAQAAEAAABVVQAAWBgABABwEAACAAAAVVUAAFgYAAQAcBAAAwAAAFVVAABYGAAEAHAQAAQAAABVVQAAWBgABABwEAAFAAAAVVUAAFgYAAQAcBAABgAAAFVVAABiEAADMhAQAAAAAABiEAADchAQAAEAAABlAAAD8iAQAAAAAABoAAACCwAAADYAAAYyABAAAAAAAOaKIAAAAAAACAAAADYAAAZCABAAAAAAAAqAIAAAAAAACQAAADgAAAtyABAAAQAAAEaCIAAAAAAACgAAAAJAAACGq9s%hqvbPoar2z4AAAAASAAAC:IAEAACAAAARhAQAAAAAABGfhAAAQAAAABgEAABAAAAAUAAAAAAAAAdAAAKMgAQAAMAAABGABAAAgAAAAJAAAAAAAAAAAAAAAAAAAAAAAAANwAADzIAEAADAAAARgAQAAMAAAACQAAAAACAPwAAgD8AAAAAAAAAAAJAAAAAAIC:AACAvwAAAAAAAAAAAAAAC3IAEAAEAAAARgAQgMEAAAACAAAAAkAAAAAAgD8AAIA:AACAPwAAAAA4AAAHMgAQAAMAAABGABAAAwAAAJYFEAAEAAAAAAAACEIAEAAEAAAAGgAQgMEAAAACAAAACgAQAAQAAAAdAAAHggAQAAAAAAAqABAABAAAAAFAAAAAAAAANwAACTIAEAAEAAAA9g8QAAAAAABGABAAAgAAAEYAEAADAAAAEAAAB4IAEAAAAAAARgIQAAQAAABGAhAABAAAAEQAAAWCABAAAAAAADoAEAAAAAAAOAAAB3IAEAADAAAA9g8QAAAAAABGAhAABAAAADgAAAcyABAAAgAAACYKEAADAAAAJgoQAAMAAAA4AAAHcgAQAAQAAABGAhAAAAAAAFYFEAACAAAAMgAACoIAEAAAAAAAGgAQAAMAAAAaABAAAwAAAAoAEIBBAAAAAgAAADgAAApyABAABAAAAEYCEAAEAAAAAkAAAHE9Pj9xPT4:cT0%PwAAAAAyAAAJcgAQAAEAAABGAhAAAQAAAPYPEAAAAAAARgIQAAQAAAAyAAANcgAQAAEAAABGgiAAAAAAAAQAAAACQAAAxt9iP8bfYj:G32I:AAAAAEYCEAABAAAAMgAADXIAEAAAAAAARgIQgEEAAAAAAAAAAkAAACqnfT4qp30%Kqd9PgAAAABGAhAAAQAAADgAAAhyABAAAQAAAFYFEAADAAAARoIgAAAAAAAHAAAAOAAACnIAEAABAAAARgIQAAEAAAACQAAAhqtbP4arWz%Gq1s:AAAAADIAAApyABAAAAAAAEYCEAABAAAApgoQgEEAAAADAAAARgIQAAAAAAA4AAAIcgAQAAEAAABWBRAAAwAAAJaHIAAAAAAACQAAADgAAAdyABAAAQAAAAYAEAADAAAARgIQAAEAAAAyAAAMcgAQAAAAAABGAhAAAQAAAAJAAACGq1s:hqtbP4arWz8AAAAARgIQAAAAAAA4AAAJEgAQAAEAAAAqABCAQQAAAAMAAAA6gCAAAAAAAAcAAAA4AAAJYgAQAAEAAACmChCAQQAAAAMAAAAGgSAAAAAAAAgAAAA4AAAHcgAQAAEAAAAGABAAAwAAAEYCEAABAAAAMgAADHIAEAAAAAAARgIQAAEAAAACQAAAhqtbP4arWz%Gq1s:AAAAAEYCEAAAAAAAOAAACHIAEAABAAAAVgUQAAMAAACWhyAAAAAAAAYAAAAyAAAMcgAQAAAAAABGAhAAAQAAAAJAAABp:II:afyCP2n8gj8AAAAARgIQAAAAAAA4AAAJEgAQAAEAAAAqABCAQQAAAAMAAAA6gCAAAAAAAAQAAAA4AAAJYgAQAAEAAACmChCAQQAAAAMAAAAGgSAAAAAAAAUAAAAyAAAMcgAQAAAAAABGAhAAAQAAAAJAAABp:II:afyCP2n8gj8AAAAARgIQAAAAAAA4AAAIMgAQAAEAAAAGABAAAwAAAOaKIAAAAAAABQAAADgAAAhCABAAAQAAAAoAEAADAAAACoAgAAAAAAAGAAAAMgAADHIAEAAAAAAARgIQAAEAAAACQAAAafyCP2n8gj9p:II:AAAAAEYCEAAAAAAAHAAABYIAEAAAAAAAOgAQAAIAAAABAAAHggAQAAAAAAA6ABAAAAAAAAFAAAD:D:::VgAABYIAEAAAAAAAOgAQAAAAAAA4AAAHggAQAAAAAAA6ABAAAAAAAAFAAAABCIA5SAAAC:IAEAABAAAARhAQAAAAAABGfhAAAgAAAABgEAACAAAAAUAAAAAAAAAyAAAKsgAQAAIAAAD2DxAAAAAAAEYIEIBBAAAAAQAAAEYIEAABAAAAOAAAB3IAEAAAAAAARgIQAAAAAABGAxAAAgAAAEgAAAvyABAABAAAAEYQEAAAAAAARn4QAAMAAAAAYBAAAwAAAAFAAAAAAAAAMgAACYIAEAADAAAACgAQAAQAAAABQAAAAAAAQAFAAAAAAIC:MgAACYIAEAADAAAAOgAQAAMAAAABQAAAAAAAPwFAAAAAAAA:AAAACYIAEAADAAAAOgAQAAMAAAAKgCCAQQAAAAAAAAADAAAADgAACIIAEAADAAAAGoAgAAAAAAADAAAAOgAQAAMAAAAQAAAHEgAQAAQAAABGEhAAAQAAAEYSEAABAAAARAAABRIAEAAEAAAACgAQAAQAAAA4AAAHcgAQAAQAAAAGABAABAAAAEYSEAABAAAAEAAACIIAEAAEAAAARoIgAAAAAAACAAAARgIQAAQAAAAOAAAHggAQAAMAAAA6ABAAAwAAADoAEAAEAAAAMgAACnIAEAAEAAAARgIQAAQAAAD2DxAAAwAAAEaCIAAAAAAAAQAAAAAAAAlyABAABQAAAEYCEIBBAAAABAAAAEaCIAAAAAAAAQAAABAAAAeCABAAAwAAAEYCEAAFAAAARgIQAAUAAABEAAAFggAQAAMAAAA6ABAAAwAAADgAAAdyABAABgAAAPYPEAADAAAARgIQAAUAAAAQAAAIggAQAAQAAABGAhCAQQAAAAYAAABGAhAAAwAAAAAAAAeCABAABAAAADoAEAAEAAAAOgAQAAQAAAAyAAALcgAQAAcAAABmCBAAAwAAAPYPEIBBAAAABAAAAGYIEIBBAAAABgAAADQAAAmCABAABAAAACoAEICBAAAABwAAABoAEICBAAAABwAAAA4AAAqCABAABAAAAAJAAAAAAIA:AACAPwAAgD8AAIA:OgAQAAQAAAAzAAAJggAQAAUAAAAqABCAgQAAAAcAAAAaABCAgQAAAAcAAAA4AAAHggAQAAQAAAA6ABAABAAAADoAEAAFAAAAOAAAB4IAEAAFAAAAOgAQAAQAAAA6ABAABAAAADIAAAmCABAABgAAADoAEAAFAAAAAUAAAF%uqjwBQAAANlquvTIAAAmCABAABgAAADoAEAAFAAAAOgAQAAYAAAABQAAA4nY4PjIAAAmCABAABgAAADoAEAAFAAAAOgAQAAYAAAABQAAABB2pvjIAAAmCABAABQAAADoAEAAFAAAAOgAQAAYAAAABQAAAOPd:PzgAAAeCABAABgAAADoAEAAEAAAAOgAQAAUAAAAyAAAJggAQAAYAAAA6ABAABgAAAAFAAAAAAADAAUAAANsPyT8xAAAJggAQAAcAAAAqABCAgQAAAAcAAAAaABCAgQAAAAcAAAABAAAHggAQAAYAAAA6ABAABgAAADoAEAAHAAAAMgAACYIAEAAEAAAAOgAQAAQAAAA6ABAABQAAADoAEAAGAAAAMQAACDIAEAAIAAAAhgAQAAcAAACGABCAQQAAAAcAAAABAAAHggAQAAUAAAAaABAACAAAAAFAAADbD0nAAAAAB4IAEAAEAAAAOgAQAAQAAAA6ABAABQAAADMAAAiCABAABQAAACoAEAAHAAAAGgAQgEEAAAAHAAAAMQAACIIAEAAFAAAAOgAQAAUAAAA6ABCAQQAAAAUAAAA0AAAIggAQAAYAAAAqABAABwAAABoAEIBBAAAABwAAAB0AAAiCABAABgAAADoAEAAGAAAAOgAQgEEAAAAGAAAAAQAAB4IAEAAFAAAAOgAQAAUAAAA6ABAABgAAADcAAAqCABAABAAAADoAEAAFAAAAOgAQgEEAAAAEAAAAOgAQAAQAAAAAAAAHggAQAAQAAAA6ABAABAAAAAFAAADbD0lAOAAABxIAEAAJAAAAOgAQAAQAAAABQAAAg:kiPjIAAAqCABAABAAAAAoAEICBAAAABwAAAAFAAAAwbpm8AUAAACcWmD0yAAAKggAQAAQAAAA6ABAABAAAAAoAEICBAAAABwAAAAFAAACENFm%MgAACoIAEAAEAAAAOgAQAAQAAAAKABCAgQAAAAcAAAABQAAApA3JPwAAAAiCABAABQAAAAoAEIDBAAAABwAAAAFAAAAAAIA:SwAABYIAEAAFAAAAOgAQAAUAAAA4AAAHggAQAAYAAAA6ABAABAAAADoAEAAFAAAAMgAACYIAEAAGAAAAOgAQAAYAAAABQAAAAAAAwAFAAADbD0lAAQAAB4IAEAAGAAAACgAQAAgAAAA6ABAABgAAADIAAAmCABAABAAAADoAEAAEAAAAOgAQAAUAAAA6ABAABgAAADgAAAciABAACQAAADoAEAAEAAAAAUAAAIP5oj4rAAAGggAQAAQAAAAKgCAAAAAAAAsAAAA4AAAHggAQAAQAAAAqABAAAgAAADoAEAAEAAAASAAAC:IAEAAHAAAARgAQAAkAAABGfhAABQAAAABgEAAFAAAAOgAQAAQAAAAQAAAHggAQAAQAAABGAhAAAwAAAEYCEAAGAAAANAAAByIAEAAIAAAAOgAQAAQAAAABQAAAAAAAAAAAAAhCABAACAAAACoAEIBBAAAAAgAAAAFAAAAAAIA:OAAACnIAEAAJAAAAlgUQAAgAAAACQAAAAACAQwAAgEMAAIBAAAAAABsAAAUyABAACgAAAEYAEAAJAAAANAAAB4IAEAAEAAAAKgAQAAkAAAABQAAArMUnNzYAAAjCABAACgAAAAJAAAAAAAAAAAAAAAAAAAAAAAAALQAAB:IAEAAJAAAARg4QAAoAAABGfhAABAAAAAAAAApyABAAAQAAAEYCEAABAAAAAkAAAArXI70K1yO9CtcjvQAAAAAyAAAMcgAQAAEAAAD2DxAAAAAAAEYCEAABAAAAAkAAAArXIz0K1yM9CtcjPQAAAAAyAAAJcgAQAAkAAABGAhAAAQAAAAYAEAAJAAAAVgUQAAkAAAA4AAAHcgAQAAcAAABGAhAABwAAAEYCEAAJAAAAAAAAC3IAEAAJAAAARgIQgEEAAAAJAAAAAkAAAAAAgD8AAIA:AACAPwAAAAAyAAAJcgAQAAAAAABGAhAAAAAAAEYCEAAJAAAARgIQAAcAAABBAAAFggAQAAAAAAA6ABAAAQAAABoAAAWCABAAAQAAADoAEAABAAAAOAAACIIAEAAAAAAAOgAQAAAAAAAagCAAAAAAAAsAAAA4AAAHggAQAAAAAAA6ABAAAAAAAAFAAACBgIA7OAAAB3IAEAAAAAAA9g8QAAAAAABGAhAAAAAAAAAAAAlyABAABwAAAEYCEIBBAAAABAAAAEaCIAAAAAAADAAAAAAAAAlyABAABAAAAEYCEAAEAAAARoIggEEAAAAAAAAADAAAABAAAAeCABAAAAAAAEYCEAAEAAAARgIQAAQAAAAOAAAKggAQAAAAAAACQAAAAACAPwAAgD8AAIA:AACAPzoAEAAAAAAAEAAABxIAEAAEAAAARgIQAAcAAABGAhAABwAAAEQAAAUSABAABAAAAAoAEAAEAAAAOAAAB3IAEAAEAAAABgAQAAQAAABGAhAABwAAADIAAAlyABAABQAAAEYCEAAFAAAA9g8QAAMAAABGAhAABAAAABAAAAeCABAAAwAAAEYCEAAFAAAARgIQAAUAAABEAAAFggAQAAMAAAA6ABAAAwAAADgAAAdyABAABQAAAPYPEAADAAAARgIQAAUAAAAQAAAHggAQAAMAAABGAhAAAwAAAEYCEAAFAAAAEAAABxIAEAAFAAAARgIQAAYAAABGAhAABQAAADQAAAcSABAABQAAAAoAEAAFAAAAAUAAAAAAAAA0AAAHggAQAAMAAAA6ABAAAwAAAAFAAAAAAAAAOAAAB4IAEAADAAAAOgAQAAMAAAA6ABAAAwAAADgAAAciABAABQAAACoAEAACAAAAKgAQAAIAAAAyAAAKQgAQAAIAAAAqABCAQQAAAAIAAAAqABAAAgAAAAFAAAAAAABAMgAACUIAEAAFAAAAGgAQAAUAAAAaABAABQAAAAFAAAAAAIC:MgAACYIAEAADAAAAOgAQAAMAAAAqABAABQAAAAFAAAAAAIA:OAAAB4IAEAADAAAAOgAQAAMAAAA6ABAAAwAAADgAAAdCABAABQAAABoAEAAFAAAAGgAQAAUAAAA4AAAHQgAQAAUAAAAqABAABQAAAAFAAACD%aI%DgAAB4IAEAADAAAAKgAQAAUAAAA6ABAAAwAAABAAAAdCABAABQAAAEYCEAADAAAARgIQAAQAAAA4AAAIcgAQAAMAAABGAhAAAwAAAPaPIAAAAAAADQAAADIAAA1yABAABgAAAEYCEAADAAAAAkAAAAAAoEEAAKBBAACgQQAAAABGAhCAQQAAAAQAAAA0AAAHEgAQAAgAAAAqABAABQAAAAFAAAAAAAAAMgAACTIAEAADAAAARgAQAAgAAACmChAAAgAAAFYFEAAFAAAAAAAABzIAEAAEAAAARgAQAAgAAABGABAACAAAAA4AAAoyABAAAwAAAAJAAAAAAIA:AACAPwAAgD8AAIA:RgAQAAMAAAA4AAAHMgAQAAMAAABGABAAAwAAAEYAEAAEAAAAOAAAB0IAEAACAAAAGgAQAAMAAAAKABAAAwAAADQAAAdCABAAAgAAACoAEAACAAAAAUAAAAAAAAA4AAAHQgAQAAIAAAAqABAAAgAAADoAEAADAAAAMgAACRIAEAADAAAACgAQAAUAAAABQAAAWcCxwAFAAAAMdt:AOAAABxIAEAADAAAACgAQAAUAAAAKABAAAwAAABkAAAUSABAAAwAAAAoAEAADAAAAAAAAC%IAEAADAAAABgkQgEEAAAABAAAAAkAAAAAAAAAAAIA:AACAPwAAgD8yAAAJcgAQAAEAAACWBxAAAwAAAAYAEAADAAAARgIQAAEAAAA4AAAHcgAQAAEAAACmChAAAgAAAEYCEAABAAAADgAAB3IAEAABAAAARgIQAAEAAAD2DxAABAAAADgAAAdyABAAAQAAAPYPEAABAAAARgIQAAEAAAAyAAAJcgAQAAEAAABGAxAAAgAAAAYAEAAIAAAARgIQAAEAAAA4AAAHcgAQAAEAAAD2DxAAAAAAAEYCEAABAAAAOAAACHIAEAABAAAARgIQAAEAAABGgiAAAAAAAA0AAAA0AAAJggAQAAAAAAAqABCAgQAAAAcAAAAaABCAgQAAAAcAAAA0AAAIggAQAAAAAAA6ABAAAAAAAAoAEICBAAAABwAAAA4AAAiCABAAAAAAABqAIAAAAAAAAAAAADoAEAAAAAAAAAAACYIAEAAAAAAAOgAQgEEAAAAAAAAACoAgAAAAAAAAAAAAMgAACYIAEAAAAAAAOgAQAAAAAAABQAAAAAAAPwFAAAAAAAA:MgAAC4IAEAAAAAAAOoAggEEAAAAAAAAADQAAAAFAAAAAAMA:OgAQAAAAAAA2AAAGggAQAAYAAAAaABCAQQAAAAYAAAAAAAAKcgAQAAIAAADGAhAABgAAAAJAAABvEoM6bxKDOm8SgzoAAAAARgAAC4IAEAABAAAARgIQAAIAAAAGcBAAAAAAAABgEAAAAAAAOgAQAAAAAABGAAALEgAQAAIAAADGAhAABgAAAAZwEAAAAAAAAGAQAAAAAAA6ABAAAAAAAAAAAAeCABAAAQAAADoAEAABAAAACgAQAAIAAAAAAAAKcgAQAAIAAADGAhAABgAAAAJAAABvEoO6bxKDOm8SgzoAAAAARgAACxIAEAACAAAARgIQAAIAAAAGcBAAAAAAAABgEAAAAAAAOgAQAAAAAAAAAAAHggAQAAEAAAA6ABAAAQAAAAoAEAACAAAAAAAACnIAEAACAAAAxgIQAAYAAAACQAAAbxKDOm8Sg7pvEoM6AAAAAEYAAAsSABAAAgAAAEYCEAACAAAABnAQAAAAAAAAYBAAAAAAADoAEAAAAAAAAAAAB4IAEAABAAAAOgAQAAEAAAAKABAAAgAAAAAAAApyABAAAgAAAMYCEAAGAAAAAkAAAG8SgzpvEoM6bxKDugAAAABGAAALEgAQAAIAAABGAhAAAgAAAAZwEAAAAAAAAGAQAAAAAAA6ABAAAAAAAAAAAAeCABAAAQAAADoAEAABAAAACgAQAAIAAAAAAAAKcgAQAAIAAADGAhAABgAAAAJAAABvEoO6bxKDum8SgzoAAAAARgAACxIAEAACAAAARgIQAAIAAAAGcBAAAAAAAABgEAAAAAAAOgAQAAAAAAAAAAAHggAQAAEAAAA6ABAAAQAAAAoAEAACAAAAAAAACnIAEAACAAAAxgIQAAYAAAACQAAAbxKDOm8Sg7pvEoO6AAAAAEYAAAsSABAAAgAAAEYCEAACAAAABnAQAAAAAAAAYBAAAAAAADoAEAAAAAAAAAAAB4IAEAABAAAAOgAQAAEAAAAKABAAAgAAAAAAAApyABAAAgAAAMYCEAAGAAAAAkAAAG8Sg7pvEoM6bxKDugAAAAAAAAAKcgAQAAMAAADGAhAABgAAAAJAAABvEoO6bxKDum8Sg7oAAAAARgAAC4IAEAACAAAARgIQAAMAAAAGcBAAAAAAAABgEAAAAAAAOgAQAAAAAABGAAALggAQAAAAAABGAhAAAgAAAAZwEAAAAAAAAGAQAAAAAAA6ABAAAAAAAAAAAAeCABAAAAAAADoAEAAAAAAAOgAQAAEAAAAAAAAHggAQAAAAAAA6ABAAAgAAADoAEAAAAAAAOAAAB4IAEAAAAAAAOgAQAAAAAAABQAAAOY7jPTgAAAdyABAAAQAAAPYPEAAAAAAARgIQAAEAAABIAAAL8gAQAAIAAABGEBAAAAAAAEZ%EAAGAAAAAGAQAAYAAAABQAAAAAAAADIAAAlyIBAAAAAAAEYCEAAAAAAABgAQAAIAAABGAhAAAQAAADYAAAWCIBAAAAAAAAFAAAAAAIA:PgAAAVNUQVR0AAAAzQAAAAsAAAAAAAAAAwAAAK0AAAAAAAAABQAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAAAAkAAAAAAAAAAAAAAAQAAAADAAAABgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+kha_Shaders.deferred_light_fragData0 = "s9976:AAhfZ2J1ZmZlcjBfc2FtcGxlcgAAX2didWZmZXIxX3NhbXBsZXIAAV9nYnVmZmVyRF9zYW1wbGVyAAJnYnVmZmVyMAAAZ2J1ZmZlcjEAAWdidWZmZXJEAAJjbHVzdGVyc0RhdGEAAyRHbG9iYWxzAAAJZXllAAAAAAAMAAAAAwFleWVMb29rABAAAAAMAAAAAwFjYW1lcmFQcm9qACAAAAAIAAAAAgFzaGlycgAwAAAAcAAAAAQBZW52bWFwU3RyZW5ndGgAoAAAAAQAAAABAXN1bkRpcgCkAAAADAAAAAMBc3VuQ29sALAAAAAMAAAAAwFjYW1lcmFQbGFuZQDAAAAACAAAAAIBbGlnaHRzQXJyYXkA0AAAAMAAAAAEAURYQkOFKS0cB4fnajCEz33r43oyAQAAABwcAAAFAAAANAAAAIADAADMAwAAAAQAAKAbAABSREVGRAMAAAEAAACEAQAACAAAABwAAAAABP::AAEAABwDAAAcAQAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAC4BAAADAAAAAAAAAAAAAAAAAAAAAQAAAAEAAAABAAAAQAEAAAMAAAAAAAAAAAAAAAAAAAACAAAAAQAAAAEAAABSAQAAAgAAAAUAAAAEAAAA:::::wAAAAABAAAADQAAAFsBAAACAAAABQAAAAQAAAD:::::AQAAAAEAAAANAAAAZAEAAAIAAAAFAAAABAAAAP::::8CAAAAAQAAAA0AAABtAQAAAgAAAAUAAAAEAAAA:::::wMAAAABAAAADQAAAHoBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAX2didWZmZXIwX3NhbXBsZXIAX2didWZmZXIxX3NhbXBsZXIAX2didWZmZXJEX3NhbXBsZXIAZ2J1ZmZlcjAAZ2J1ZmZlcjEAZ2J1ZmZlckQAY2x1c3RlcnNEYXRhACRHbG9iYWxzAKt6AQAACQAAAJwBAACQAQAAAAAAAAAAAAB0AgAAAAAAAAwAAAACAAAAeAIAAAAAAACIAgAAEAAAAAwAAAACAAAAeAIAAAAAAACQAgAAIAAAAAgAAAACAAAAnAIAAAAAAACsAgAAMAAAAHAAAAACAAAAtAIAAAAAAADEAgAAoAAAAAQAAAACAAAA1AIAAAAAAADkAgAApAAAAAwAAAACAAAAeAIAAAAAAADrAgAAsAAAAAwAAAACAAAAeAIAAAAAAADyAgAAwAAAAAgAAAACAAAAnAIAAAAAAAD%AgAA0AAAAMAAAAACAAAADAMAAAAAAABleWUAAQADAAEAAwAAAAAAAAAAAGV5ZUxvb2sAY2FtZXJhUHJvagCrAQADAAEAAgAAAAAAAAAAAHNoaXJyAKurAQADAAEABAAHAAAAAAAAAGVudm1hcFN0cmVuZ3RoAKsAAAMAAQABAAAAAAAAAAAAc3VuRGlyAHN1bkNvbABjYW1lcmFQbGFuZQBsaWdodHNBcnJheQCrqwEAAwABAAQADAAAAAAAAABNaWNyb3NvZnQgKFIpIEhMU0wgU2hhZGVyIENvbXBpbGVyIDEwLjEASVNHTkQAAAACAAAACAAAADgAAAAAAAAAAAAAAAMAAAAAAAAAAwMAADgAAAABAAAAAAAAAAMAAAABAAAABwcAAFRFWENPT1JEAKurq09TR04sAAAAAQAAAAgAAAAgAAAAAAAAAAAAAAADAAAAAAAAAA8AAABTVl9UYXJnZXQAq6tTSERSmBcAAEAAAADmBQAAWQgABEaOIAAAAAAAGQAAAFoAAAMAYBAAAAAAAFoAAAMAYBAAAQAAAFoAAAMAYBAAAgAAAFgYAAQAcBAAAAAAAFVVAABYGAAEAHAQAAEAAABVVQAAWBgABABwEAACAAAAVVUAAFgYAAQAcBAAAwAAAFVVAABiEAADMhAQAAAAAABiEAADchAQAAEAAABlAAAD8iAQAAAAAABoAAACDgAAAEgAAAvyABAAAAAAAEYQEAAAAAAARn4QAAAAAAAAYBAAAAAAAAFAAAAAAAAAAAAAC3IAEAABAAAARgAQgMEAAAAAAAAAAkAAAAAAgD8AAIA:AACAPwAAAAAAAAAIQgAQAAIAAAAaABCAwQAAAAAAAAAKABAAAQAAAB0AAAcSABAAAQAAACoAEAACAAAAAUAAAAAAAAAdAAAKMgAQAAMAAABGABAAAAAAAAJAAAAAAAAAAAAAAAAAAAAAAAAANwAADzIAEAADAAAARgAQAAMAAAACQAAAAACAPwAAgD8AAAAAAAAAAAJAAAAAAIC:AACAvwAAAAAAAAAAOAAAB2IAEAABAAAAVgYQAAEAAAAGARAAAwAAADcAAAkyABAAAgAAAAYAEAABAAAARgAQAAAAAACWBRAAAQAAABAAAAcSABAAAAAAAEYCEAACAAAARgIQAAIAAABEAAAFEgAQAAAAAAAKABAAAAAAADgAAAdyABAAAQAAAAYAEAAAAAAARgIQAAIAAAAcAAAFEgAQAAAAAAA6ABAAAAAAAAEAAAcSABAAAAAAAAoAEAAAAAAAAUAAAP8P::9WAAAFEgAQAAAAAAAKABAAAAAAADgAAAcSABAAAAAAAAoAEAAAAAAAAUAAAAEIgDlIAAAL8gAQAAIAAABGEBAAAAAAAEZ%EAABAAAAAGAQAAEAAAABQAAAAAAAAEEAAAUiABAAAAAAADoAEAACAAAAOAAACCIAEAAAAAAAGgAQAAAAAAAKgCAAAAAAAAoAAAAaAAAFggAQAAAAAAA6ABAAAgAAADIAAApyABAAAwAAAAYAEAAAAAAARgIQgEEAAAACAAAARgIQAAIAAAAAAAAKcgAQAAIAAABGAhAAAgAAAAJAAAAK1yO9CtcjvQrXI70AAAAAMgAADHIAEAACAAAABgAQAAAAAABGAhAAAgAAAAJAAAAK1yM9CtcjPQrXIz0AAAAASAAAC:IAEAAEAAAARhAQAAAAAABGfhAAAgAAAABgEAACAAAAAUAAAAAAAAAyAAAJEgAQAAAAAAAKABAABAAAAAFAAAAAAABAAUAAAAAAgL8QAAAHggAQAAEAAABGEhAAAQAAAEYSEAABAAAARAAABYIAEAABAAAAOgAQAAEAAAA4AAAHcgAQAAQAAAD2DxAAAQAAAEYSEAABAAAAMgAACRIAEAAAAAAACgAQAAAAAAABQAAAAAAAPwFAAAAAAAA:AAAACRIAEAAAAAAACgAQAAAAAAAKgCCAQQAAAAAAAAACAAAADgAACBIAEAAAAAAAGoAgAAAAAAACAAAACgAQAAAAAAAQAAAIggAQAAEAAABGgiAAAAAAAAEAAABGAhAABAAAAA4AAAeCABAAAQAAAAoAEAAAAAAAOgAQAAEAAAAyAAAKcgAQAAQAAABGAhAABAAAAPYPEAABAAAARoIgAAAAAAAAAAAAAAAACXIAEAAFAAAARgIQgEEAAAAEAAAARoIgAAAAAAAAAAAAEAAAB4IAEAABAAAARgIQAAUAAABGAhAABQAAAEQAAAWCABAAAQAAADoAEAABAAAAOAAAB3IAEAAGAAAA9g8QAAEAAABGAhAABQAAABAAAAeCABAAAgAAAEYCEAABAAAARgIQAAYAAAA0AAAHQgAQAAcAAAA6ABAAAgAAAAFAAAAAAAAAOAAAC3IAEAAIAAAARoIgAAAAAAAJAAAAAkAAAIar2z6Gq9s%hqvbPgAAAAA4AAAHMgAQAAkAAAAmChAAAQAAACYKEAABAAAAMgAACoIAEAACAAAAGgAQAAEAAAAaABAAAQAAAAoAEIBBAAAACQAAADYAAAYyABAACgAAAOaKIAAAAAAABwAAADYAAAZCABAACgAAAAqAIAAAAAAACAAAADgAAAdyABAACQAAAFYFEAAJAAAARgIQAAoAAAA4AAAKcgAQAAkAAABGAhAACQAAAAJAAABxPT4:cT0%P3E9Pj8AAAAAMgAACXIAEAAIAAAARgIQAAgAAAD2DxAAAgAAAEYCEAAJAAAAMgAADXIAEAAIAAAARoIgAAAAAAADAAAAAkAAAMbfYj:G32I:xt9iPwAAAABGAhAACAAAADIAAA1yABAACAAAAEYCEIBBAAAACgAAAAJAAAAqp30%Kqd9PiqnfT4AAAAARgIQAAgAAAA4AAAIcgAQAAkAAABWBRAAAQAAAEaCIAAAAAAABgAAADgAAApyABAACQAAAEYCEAAJAAAAAkAAAIarWz%Gq1s:hqtbPwAAAAAyAAAKcgAQAAgAAABGAhAACQAAAKYKEIBBAAAAAQAAAEYCEAAIAAAAOAAACHIAEAAJAAAAVgUQAAEAAACWhyAAAAAAAAgAAAA4AAAHcgAQAAkAAAAGABAAAQAAAEYCEAAJAAAAMgAADHIAEAAIAAAARgIQAAkAAAACQAAAhqtbP4arWz%Gq1s:AAAAAEYCEAAIAAAAOAAACRIAEAAJAAAAKgAQgEEAAAABAAAAOoAgAAAAAAAGAAAAOAAACWIAEAAJAAAApgoQgEEAAAABAAAABoEgAAAAAAAHAAAAOAAAB3IAEAAJAAAABgAQAAEAAABGAhAACQAAADIAAAxyABAACAAAAEYCEAAJAAAAAkAAAIarWz%Gq1s:hqtbPwAAAABGAhAACAAAADgAAAhyABAACQAAAFYFEAABAAAAlocgAAAAAAAFAAAAMgAADHIAEAAIAAAARgIQAAkAAAACQAAAafyCP2n8gj9p:II:AAAAAEYCEAAIAAAAOAAACRIAEAAJAAAAKgAQgEEAAAABAAAAOoAgAAAAAAADAAAAOAAACWIAEAAJAAAApgoQgEEAAAABAAAABoEgAAAAAAAEAAAAMgAADHIAEAAIAAAARgIQAAkAAAACQAAAafyCP2n8gj9p:II:AAAAAEYCEAAIAAAAOAAACDIAEAAJAAAABgAQAAEAAADmiiAAAAAAAAQAAAA4AAAIQgAQAAkAAAAKABAAAQAAAAqAIAAAAAAABQAAADIAAAxyABAACAAAAEYCEAAJAAAAAkAAAGn8gj9p:II:afyCPwAAAABGAhAACAAAADgAAAdyABAACAAAAEYCEAADAAAARgIQAAgAAAA4AAAHIgAQAAAAAAAaABAAAAAAAAFAAACBgIA7MgAACnIAEAAJAAAARgIQAAUAAAD2DxAAAQAAAJaHIAAAAAAACgAAABAAAAeCABAAAgAAAEYCEAAJAAAARgIQAAkAAABEAAAFggAQAAIAAAA6ABAAAgAAADgAAAdyABAACQAAAPYPEAACAAAARgIQAAkAAAAQAAAHggAQAAIAAABGAhAAAQAAAEYCEAAJAAAANAAAB4IAEAACAAAAOgAQAAIAAAABQAAAAAAAABAAAAeCABAAAwAAAEYCEAAGAAAARgIQAAkAAAA0AAAHggAQAAMAAAA6ABAAAwAAAAFAAAAAAAAAEAAACIIAEAAEAAAARgIQAAEAAACWhyAAAAAAAAoAAAA0AAAHIgAQAAcAAAA6ABAABAAAAAFAAAAAAAAAOAAAB4IAEAAEAAAAKgAQAAAAAAAqABAAAAAAAAAAAAtyABAACQAAAEYCEIBBAAAAAgAAAAJAAAAAAIA:AACAPwAAgD8AAAAAMgAACYIAEAAFAAAAOgAQAAMAAAABQAAAWcCxwAFAAAAMdt:AOAAAB4IAEAADAAAAOgAQAAMAAAA6ABAABQAAABkAAAWCABAAAwAAADoAEAADAAAAMgAACXIAEAAKAAAARgIQAAkAAAD2DxAAAwAAAEYCEAACAAAAOAAAB4IAEAADAAAAOgAQAAQAAAA6ABAABAAAADgAAAeCABAAAgAAADoAEAACAAAAOgAQAAIAAAAyAAAJggAQAAUAAAA6ABAABAAAADoAEAAEAAAAAUAAAAAAgL8yAAAJggAQAAIAAAA6ABAAAgAAADoAEAAFAAAAAUAAAAAAgD84AAAHggAQAAIAAAA6ABAAAgAAADoAEAACAAAAOAAAB4IAEAADAAAAOgAQAAMAAAABQAAAg:miPg4AAAeCABAAAgAAADoAEAADAAAAOgAQAAIAAAAAAAAHMgAQAAsAAACWBRAABwAAAJYFEAAHAAAAMgAACkIAEAAAAAAAKgAQgEEAAAAAAAAAKgAQAAAAAAABQAAAAAAAQDIAAAnCABAACwAAAFYJEAAHAAAApgoQAAAAAAD2DxAABAAAAA4AAArCABAACwAAAAJAAAAAAIA:AACAPwAAgD8AAIA:pg4QAAsAAAA4AAAHMgAQAAsAAADmChAACwAAAEYAEAALAAAAOAAAB4IAEAAGAAAAGgAQAAsAAAAKABAACwAAADQAAAeCABAABgAAADoAEAAGAAAAAUAAAAAAAAA4AAAHggAQAAIAAAA6ABAAAgAAADoAEAAGAAAAOAAAB3IAEAAKAAAA9g8QAAIAAABGAhAACgAAADgAAAeCABAAAgAAACoAEAAHAAAAAUAAAAAAgEA0AAAHggAQAAIAAAA6ABAAAgAAAAFAAACsxSc3DgAAB3IAEAAKAAAARgIQAAoAAAD2DxAAAgAAADgAAAdyABAACgAAAPYPEAAAAAAARgIQAAoAAAAyAAAJcgAQAAoAAABGAhAAAwAAAFYFEAAHAAAARgIQAAoAAAA4AAAIcgAQAAoAAABGAhAACgAAAEaCIAAAAAAACwAAADIAAAlyABAACAAAAEYCEAAIAAAAVgUQAAAAAABGAhAACgAAAAAAAAgiABAAAAAAAAqAIAAAAAAADAAAAAFAAAAAAEBAHQAAB4IAEAAGAAAACgAQAAAAAAAaABAAAAAAAAAAAAgiABAABwAAABoAEIBBAAAAAAAAAAoAEAAAAAAAAAAAByIAEAAHAAAAGgAQAAcAAAABQAAAAACAPy8AAAUiABAABwAAABoAEAAHAAAAOAAAByIAEAAHAAAAGgAQAAcAAAABQAAAGHIxPwAAAAkiABAAAAAAABoAEIBBAAAAAAAAABqAIAAAAAAADAAAAAAAAAciABAAAAAAABoAEAAAAAAAAUAAAAAAgD8vAAAFIgAQAAAAAAAaABAAAAAAADgAAAciABAAAAAAABoAEAAAAAAAAUAAABhyMT8OAAAHIgAQAAAAAAAaABAABwAAABoAEAAAAAAAOAAAByIAEAAAAAAAGgAQAAAAAAABQAAAAABwQRsAAAUiABAAAAAAABoAEAAAAAAAHgAAByIAEAAAAAAAGgAQAAAAAAABQAAAAQAAAB0AAAgSABAAAAAAAAoAEAAAAAAACoAgAAAAAAAMAAAAAQAABxIAEAAAAAAACgAQAAAAAAABQAAAAQAAADcAAAkSABAAAAAAADoAEAAGAAAAGgAQAAAAAAAKABAAAAAAADgAAAqiABAABwAAAAYUEAAAAAAAAkAAAAAAAAAAAIBBAAAAAAAAgEEbAAAFIgAQAAAAAAAaABAABwAAAEMAAAWCABAABgAAADoAEAAHAAAAOAAAB4IAEAAGAAAAOgAQAAYAAAABQAAAAACAQRsAAAWCABAABgAAADoAEAAGAAAAHgAAByIAEAAAAAAAGgAQAAAAAAA6ABAABgAAACsAAAUSABAAAAAAAAoAEAAAAAAAOAAABxIAEAAAAAAACgAQAAAAAAABQAAAAACAQxsAAAUSABAAAAAAAAoAEAAAAAAAHgAAByIAEAAKAAAACgAQAAAAAAAaABAAAAAAADYAAAjCABAACgAAAAJAAAAAAAAAAAAAAAAAAAAAAAAALQAAB:IAEAALAAAA1g8QAAoAAABGfhAAAwAAADgAAAcSABAAAAAAAAoAEAALAAAAAUAAAAAAf0MbAAAFEgAQAAAAAAAKABAAAAAAACUAAAcSABAAAAAAAAoAEAAAAAAAAUAAAAQAAAA2AAAFcgAQAAsAAABGAhAACAAAADYAAAUSABAACgAAAAFAAAAAAAAAMAAAASEAAAciABAAAAAAAAoAEAAKAAAACgAQAAAAAAADAAQDGgAQAAAAAAAeAAAHEgAQAAoAAAAKABAACgAAAAFAAAABAAAALQAAB:IAEAAMAAAAFg4QAAoAAABGfhAAAwAAADgAAAciABAAAAAAAAoAEAAMAAAAAUAAAAAAf0MbAAAFIgAQAAAAAAAaABAAAAAAACYAAAgA0AAAggAQAAYAAAAaABAAAAAAAAFAAAADAAAAIwAACSIAEAAAAAAAGgAQAAAAAAABQAAAAwAAAAFAAAABAAAAAAAAC3IAEAAMAAAARgIQgEEAAAAEAAAARoIgBgAAAAANAAAAOgAQAAYAAAAQAAAHIgAQAAcAAABGAhAADAAAAEYCEAAMAAAARAAABSIAEAAHAAAAGgAQAAcAAAA4AAAHcgAQAAwAAABWBRAABwAAAEYCEAAMAAAAMgAACXIAEAANAAAARgIQAAUAAAD2DxAAAQAAAEYCEAAMAAAAEAAAByIAEAAHAAAARgIQAA0AAABGAhAADQAAAEQAAAUiABAABwAAABoAEAAHAAAAOAAAB3IAEAANAAAAVgUQAAcAAABGAhAADQAAABAAAAciABAABwAAAEYCEAABAAAARgIQAA0AAAAQAAAHggAQAAcAAABGAhAABgAAAEYCEAANAAAANAAACqIAEAAHAAAAVg0QAAcAAAACQAAAAAAAAAAAAAAAAAAAAAAAABAAAAeCABAACAAAAEYCEAABAAAARgIQAAwAAAA0AAAHEgAQAAcAAAA6ABAACAAAAAFAAAAAAAAAMgAACYIAEAAIAAAAOgAQAAcAAAABQAAAWcCxwAFAAAAMdt:AOAAAB4IAEAAHAAAAOgAQAAcAAAA6ABAACAAAABkAAAWCABAABwAAADoAEAAHAAAAMgAACXIAEAAMAAAARgIQAAkAAAD2DxAABwAAAEYCEAACAAAAOAAAByIAEAAHAAAAGgAQAAcAAAAaABAABwAAADIAAAkiABAABwAAABoAEAAHAAAAOgAQAAUAAAABQAAAAACAPzgAAAciABAABwAAABoAEAAHAAAAGgAQAAcAAAAOAAAHIgAQAAcAAAA6ABAAAwAAABoAEAAHAAAAAAAABzIAEAANAAAAhgAQAAcAAACGABAABwAAADIAAAnCABAADQAAAAYIEAAHAAAApgoQAAAAAAD2DxAABAAAAA4AAArCABAADQAAAAJAAAAAAIA:AACAPwAAgD8AAIA:pg4QAA0AAAA4AAAHMgAQAA0AAADmChAADQAAAEYAEAANAAAAOAAAB4IAEAAHAAAAGgAQAA0AAAAKABAADQAAADQAAAeCABAABwAAADoAEAAHAAAAAUAAAAAAAAA4AAAHIgAQAAcAAAA6ABAABwAAABoAEAAHAAAAOAAAB3IAEAAMAAAAVgUQAAcAAABGAhAADAAAAA4AAAdyABAADAAAAEYCEAAMAAAA9g8QAAIAAAA4AAAHcgAQAAwAAAD2DxAAAAAAAEYCEAAMAAAAMgAACbIAEAAHAAAARggQAAMAAAAGABAABwAAAEYIEAAMAAAAAAAAC3IAEAAMAAAARgIQAAQAAABGgiCGQQAAAAAAAAANAAAAOgAQAAYAAAAQAAAHggAQAAYAAABGAhAADAAAAEYCEAAMAAAADgAACoIAEAAGAAAAAkAAAAAAgD8AAIA:AACAPwAAgD86ABAABgAAADgAAAeyABAABwAAAPYPEAAGAAAARgwQAAcAAAAyAAAMcgAQAAsAAABGAxAABwAAAEaCIAYAAAAADQAAABoAEAAAAAAARgIQAAsAAAAWAAABNgAABXIgEAAAAAAARgIQAAsAAAA2AAAFgiAQAAAAAAABQAAAAACAPz4AAAFTVEFUdAAAAMAAAAAOAAAAAAAAAAMAAACaAAAACAAAAAIAAAABAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUAAAAAAAAAAAAAAAAAAAAHAAAAAwAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 kha_Shaders.line_deferred_fragData0 = "s682:AAAARFhCQ5vz:tmFILt8j9P6xQPbPW8BAAAA:AEAAAUAAAA0AAAAgAAAALQAAAAAAQAAgAEAAFJERUZEAAAAAAAAAAAAAAAAAAAAHAAAAAAE::8AAQAAHAAAAE1pY3Jvc29mdCAoUikgSExTTCBTaGFkZXIgQ29tcGlsZXIgMTAuMQBJU0dOLAAAAAEAAAAIAAAAIAAAAAAAAAAAAAAAAwAAAAAAAAAHBwAAVEVYQ09PUkQAq6urT1NHTkQAAAACAAAACAAAADgAAAAAAAAAAAAAAAMAAAAAAAAADwAAADgAAAABAAAAAAAAAAMAAAABAAAADwAAAFNWX1RhcmdldACrq1NIRFJ4AAAAQAAAAB4AAABiEAADchAQAAAAAABlAAAD8iAQAAAAAABlAAAD8iAQAAEAAAA2AAAI8iAQAAAAAAACQAAAAACAPwAAgD8AAAAAAACAPzYAAAVyIBAAAQAAAEYSEAAAAAAANgAABYIgEAABAAAAAUAAAAAAgD8%AAABU1RBVHQAAAAEAAAAAAAAAAAAAAADAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 kha_Shaders.line_vertData0 = "s1264:AmNvbAAAcG9zAAEBJEdsb2JhbHMAAAFWaWV3UHJvamVjdGlvbgAAAAAAQAAAAAQERFhCQyjtXVhaBOUzv4CQc9qJ5e0BAAAAhAMAAAUAAAA0AAAA:AAAAEgBAACgAQAACAMAAFJERUbAAAAAAQAAAEgAAAABAAAAHAAAAAAE:v8AAQAAmAAAADwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAJEdsb2JhbHMAq6urPAAAAAEAAABgAAAAQAAAAAAAAAAAAAAAeAAAAAAAAABAAAAAAgAAAIgAAAAAAAAAVmlld1Byb2plY3Rpb24AqwMAAwAEAAQAAAAAAAAAAABNaWNyb3NvZnQgKFIpIEhMU0wgU2hhZGVyIENvbXBpbGVyIDEwLjEASVNHTkQAAAACAAAACAAAADgAAAAAAAAAAAAAAAMAAAAAAAAABwcAADgAAAABAAAAAAAAAAMAAAABAAAABwcAAFRFWENPT1JEAKurq09TR05QAAAAAgAAAAgAAAA4AAAAAAAAAAAAAAADAAAAAAAAAAcIAABBAAAAAAAAAAEAAAADAAAAAQAAAA8AAABURVhDT09SRABTVl9Qb3NpdGlvbgCrq6tTSERSYAEAAEAAAQBYAAAAWQAABEaOIAAAAAAABAAAAF8AAANyEBAAAAAAAF8AAANyEBAAAQAAAGUAAANyIBAAAAAAAGcAAATyIBAAAQAAAAEAAABoAAACAgAAADYAAAVyIBAAAAAAAEYSEAAAAAAANgAABXIAEAAAAAAARhIQAAEAAAA2AAAFggAQAAAAAAABQAAAAACAPxEAAAgSABAAAQAAAEYOEAAAAAAARo4gAAAAAAACAAAAEQAACCIAEAABAAAARg4QAAAAAABGjiAAAAAAAAMAAAAAAAAHEgAQAAEAAAAaABAAAQAAAAoAEAABAAAANgAABYIgEAABAAAAGgAQAAEAAAA4AAAHQiAQAAEAAAAKABAAAQAAAAFAAAAAAAA:EQAACBIgEAABAAAARg4QAAAAAABGjiAAAAAAAAAAAAARAAAIIiAQAAEAAABGDhAAAAAAAEaOIAAAAAAAAQAAAD4AAAFTVEFUdAAAAAsAAAACAAAAAAAAAAQAAAAGAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 kha_Shaders.painter_colored_fragData0 = "s564:AAAARFhCQ10%09VOlitqlcwulnj3BPYBAAAApAEAAAUAAAA0AAAAgAAAALQAAADoAAAAKAEAAFJERUZEAAAAAAAAAAAAAAAAAAAAHAAAAAAE::8AAQAAHAAAAE1pY3Jvc29mdCAoUikgSExTTCBTaGFkZXIgQ29tcGlsZXIgMTAuMQBJU0dOLAAAAAEAAAAIAAAAIAAAAAAAAAAAAAAAAwAAAAAAAAAPDwAAVEVYQ09PUkQAq6urT1NHTiwAAAABAAAACAAAACAAAAAAAAAAAAAAAAMAAAAAAAAADwAAAFNWX1RhcmdldACrq1NIRFI4AAAAQAAAAA4AAABiEAAD8hAQAAAAAABlAAAD8iAQAAAAAAA2AAAF8iAQAAAAAABGHhAAAAAAAD4AAAFTVEFUdAAAAAIAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
@@ -60012,13 +59453,6 @@ kha_Shaders.painter_video_vertData0 = "s1434:A3ZlcnRleENvbG9yAAB2ZXJ0ZXhQb3NpdGl
 kha_Shaders.pass_copy_fragData0 = "s771:AAJfdGV4X3NhbXBsZXIAAHRleAAAAERYQkNEWeP8b5BN%RvMTBdE:hRwAQAAACwCAAAFAAAANAAAANQAAAAIAQAAPAEAALABAABSREVGmAAAAAAAAAAAAAAAAgAAABwAAAAABP::AAEAAG0AAABcAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAGkAAAACAAAABQAAAAQAAAD:::::AAAAAAEAAAANAAAAX3RleF9zYW1wbGVyAHRleABNaWNyb3NvZnQgKFIpIEhMU0wgU2hhZGVyIENvbXBpbGVyIDEwLjEAq6urSVNHTiwAAAABAAAACAAAACAAAAAAAAAAAAAAAAMAAAAAAAAAAwMAAFRFWENPT1JEAKurq09TR04sAAAAAQAAAAgAAAAgAAAAAAAAAAAAAAADAAAAAAAAAA8AAABTVl9UYXJnZXQAq6tTSERSbAAAAEAAAAAbAAAAWgAAAwBgEAAAAAAAWBgABABwEAAAAAAAVVUAAGIQAAMyEBAAAAAAAGUAAAPyIBAAAAAAAEgAAAvyIBAAAAAAAEYQEAAAAAAARn4QAAAAAAAAYBAAAAAAAAFAAAAAAAAAPgAAAVNUQVR0AAAAAgAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 kha_Shaders.pass_vertData0 = "s763:AXBvcwAAAABEWEJDtpmVVJ2wtBYIEKtdn7IyBgEAAAA0AgAABQAAADQAAACAAAAAtAAAAAwBAAC4AQAAUkRFRkQAAAAAAAAAAAAAAAAAAAAcAAAAAAT%:wABAAAcAAAATWljcm9zb2Z0IChSKSBITFNMIFNoYWRlciBDb21waWxlciAxMC4xAElTR04sAAAAAQAAAAgAAAAgAAAAAAAAAAAAAAADAAAAAAAAAAMDAABURVhDT09SRACrq6tPU0dOUAAAAAIAAAAIAAAAOAAAAAAAAAAAAAAAAwAAAAAAAAADDAAAQQAAAAAAAAABAAAAAwAAAAEAAAAPAAAAVEVYQ09PUkQAU1ZfUG9zaXRpb24Aq6urU0hEUqQAAABAAAEAKQAAAF8AAAMyEBAAAAAAAGUAAAMyIBAAAAAAAGcAAATyIBAAAQAAAAEAAAAyAAAPMiAQAAAAAABGEBAAAAAAAAJAAAAAAAA:AAAAvwAAAAAAAAAAAkAAAAAAAD8AAAA:AAAAAAAAAAA2AAAFMiAQAAEAAABGEBAAAAAAADYAAAjCIBAAAQAAAAJAAAAAAAAAAAAAAAAAAD8AAIA:PgAAAVNUQVR0AAAABAAAAAAAAAAAAAAAAwAAAAEAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 kha_Shaders.pass_viewray_vertData0 = "s1435:AXBvcwAAASRHbG9iYWxzAAACaW52VlAAAAAAAEAAAAAEBGV5ZQBAAAAADAAAAAMBRFhCQ6vyu6KH0pZNNy%JPQseyEgBAAAABAQAAAUAAAA0AAAAIAEAAFQBAADEAQAAiAMAAFJERUbkAAAAAQAAAEgAAAABAAAAHAAAAAAE:v8AAQAAvAAAADwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAJEdsb2JhbHMAq6urPAAAAAIAAABgAAAAUAAAAAAAAAAAAAAAkAAAAAAAAABAAAAAAgAAAJgAAAAAAAAAqAAAAEAAAAAMAAAAAgAAAKwAAAAAAAAAaW52VlAAq6sDAAMABAAEAAAAAAAAAAAAZXllAAEAAwABAAMAAAAAAAAAAABNaWNyb3NvZnQgKFIpIEhMU0wgU2hhZGVyIENvbXBpbGVyIDEwLjEASVNHTiwAAAABAAAACAAAACAAAAAAAAAAAAAAAAMAAAAAAAAAAwMAAFRFWENPT1JEAKurq09TR05oAAAAAwAAAAgAAABQAAAAAAAAAAAAAAADAAAAAAAAAAMMAABQAAAAAQAAAAAAAAADAAAAAQAAAAcIAABZAAAAAAAAAAEAAAADAAAAAgAAAA8AAABURVhDT09SRABTVl9Qb3NpdGlvbgCrq6tTSERSvAEAAEAAAQBvAAAAWQAABEaOIAAAAAAABQAAAF8AAAMyEBAAAAAAAGUAAAMyIBAAAAAAAGUAAANyIBAAAQAAAGcAAATyIBAAAgAAAAEAAABoAAACAgAAADIAAA8yIBAAAAAAAEYQEAAAAAAAAkAAAAAAAD8AAAC:AAAAAAAAAAACQAAAAAAAPwAAAD8AAAAAAAAAADYAAAUyABAAAAAAAEYQEAAAAAAANgAACMIAEAAAAAAAAkAAAAAAAAAAAAAAAACAPwAAgD8RAAAIEgAQAAEAAABGDxAAAAAAAEaOIAAAAAAAAAAAABEAAAgiABAAAQAAAEYPEAAAAAAARo4gAAAAAAABAAAAEQAACEIAEAABAAAARg8QAAAAAABGjiAAAAAAAAIAAAARAAAIEgAQAAAAAABGDhAAAAAAAEaOIAAAAAAAAwAAAA4AAAdyABAAAAAAAEYCEAABAAAABgAQAAAAAAAAAAAJciAQAAEAAABGAhAAAAAAAEaCIIBBAAAAAAAAAAQAAAA2AAAFMiAQAAIAAABGEBAAAAAAADYAAAjCIBAAAgAAAAJAAAAAAAAAAAAAAAAAAD8AAIA:PgAAAVNUQVR0AAAADAAAAAIAAAAAAAAABAAAAAcAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-kha_Shaders.smaa_blend_weight_fragData0 = "s14924:AAdfZWRnZXNUZXhfc2FtcGxlcgAAX2FyZWFUZXhfc2FtcGxlcgABX3NlYXJjaFRleF9zYW1wbGVyAAJlZGdlc1RleAAAYXJlYVRleAABc2VhcmNoVGV4AAIkR2xvYmFscwAAAnNjcmVlblNpemVJbnYAAAAAAAgAAAACAXNjcmVlblNpemUACAAAAAgAAAACAURYQkMdeZhSRd3LQhLRKKln7eIEAQAAACgrAAAFAAAANAAAADACAADEAgAA%AIAAKwqAABSREVG9AEAAAEAAABYAQAABwAAABwAAAAABP::AAEAAMsBAAD8AAAAAwAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAA4BAAADAAAAAAAAAAAAAAAAAAAAAQAAAAEAAAABAAAAHwEAAAMAAAAAAAAAAAAAAAAAAAACAAAAAQAAAAEAAAAyAQAAAgAAAAUAAAAEAAAA:::::wAAAAABAAAADQAAADsBAAACAAAABQAAAAQAAAD:::::AQAAAAEAAAANAAAAQwEAAAIAAAAFAAAABAAAAP::::8CAAAAAQAAAA0AAABNAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAF9lZGdlc1RleF9zYW1wbGVyAF9hcmVhVGV4X3NhbXBsZXIAX3NlYXJjaFRleF9zYW1wbGVyAGVkZ2VzVGV4AGFyZWFUZXgAc2VhcmNoVGV4ACRHbG9iYWxzAKurTQEAAAIAAABwAQAAEAAAAAAAAAAAAAAAoAEAAAAAAAAIAAAAAgAAALABAAAAAAAAwAEAAAgAAAAIAAAAAgAAALABAAAAAAAAc2NyZWVuU2l6ZUludgCrqwEAAwABAAIAAAAAAAAAAABzY3JlZW5TaXplAE1pY3Jvc29mdCAoUikgSExTTCBTaGFkZXIgQ29tcGlsZXIgMTAuMQCrSVNHTowAAAAFAAAACAAAAIAAAAAAAAAAAAAAAAMAAAAAAAAADw8AAIAAAAABAAAAAAAAAAMAAAABAAAADw8AAIAAAAACAAAAAAAAAAMAAAACAAAADw8AAIAAAAADAAAAAAAAAAMAAAADAAAAAwMAAIAAAAAEAAAAAAAAAAMAAAADAAAADAwAAFRFWENPT1JEAKurq09TR04sAAAAAQAAAAgAAAAgAAAAAAAAAAAAAAADAAAAAAAAAA8AAABTVl9UYXJnZXQAq6tTSERSrCcAAEAAAADrCQAAWQAABEaOIAAAAAAAAQAAAFoAAAMAYBAAAAAAAFoAAAMAYBAAAQAAAFoAAAMAYBAAAgAAAFgYAAQAcBAAAAAAAFVVAABYGAAEAHAQAAEAAABVVQAAWBgABABwEAACAAAAVVUAAGIQAAPyEBAAAAAAAGIQAAPyEBAAAQAAAGIQAAPyEBAAAgAAAGIQAAMyEBAAAwAAAGIQAAPCEBAAAwAAAGUAAAPyIBAAAAAAAGgAAAIHAAAAMgAADzIAEAAAAAAA5hoQAAMAAAACQAAAAACAPwAAgL8AAAAAAAAAAAJAAAAAAAAAAACAPwAAAAAAAAAASAAAC:IAEAAAAAAARgAQAAAAAABGfhAAAAAAAABgEAAAAAAAAUAAAAAAAAAxAAAHIgAQAAAAAAABQAAAAAAAABoAEAAAAAAAHwAEAxoAEAAAAAAAMQAAByIAEAAAAAAAAUAAAAAAAAAKABAAAAAAAB8ABAMaABAAAAAAADgAAAsyABAAAQAAAEaAIAAAAAAAAAAAAAJAAAAAAIC:AACAPwAAAAAAAAAANgAABUIAEAABAAAAAUAAAAAAgD82AAAFMgAQAAIAAADmGhAAAwAAADYAAAUSABAAAwAAAAFAAAAAAAAANgAABUIAEAACAAAAAUAAAAAAgL82AAAFIgAQAAAAAAABQAAAAACAPzAAAAExAAAHQgAQAAAAAAAqABAAAgAAAAFAAAAAAOBAMQAAB4IAEAAAAAAAAUAAAGZmZj8aABAAAAAAAAEAAAdCABAAAAAAADoAEAAAAAAAKgAQAAAAAAADAAADKgAQAAAAAAAAAAAHcgAQAAIAAABGAhAAAQAAAEYCEAACAAAAAAAACIIAEAACAAAAGgAQgEEAAAACAAAAAUAAAAAAgD9IAAAL8gAQAAMAAADGABAAAgAAABZ%EAAAAAAAAGAQAAAAAAABQAAAAAAAAA8AAAoiABAAAAAAABYFEAADAAAAAkAAAAAAAD8AAAA:AAAAAAAAAAAWAAABMQAAB0IAEAAAAAAAAUAAAGZmZj8KABAAAwAAAAEAAAdCABAAAAAAACoAEAAAAAAAAUAAAAAAgD8AAAAHEgAQAAEAAAAqABAAAAAAACoAEAACAAAAEgAAATYAAAUSABAAAQAAAAFAAAAAAAAANgAABSIAEAAAAAAAAUAAAAAAAAA2AAAFEgAQAAMAAAABQAAAAAAAABUAAAE4AAALYgAQAAIAAAAGgSAAAAAAAAAAAAACQAAAAAAAAAAAgD8AAIC:AAAAADYAAAWCABAAAgAAAAFAAAAAAIA:NgAABTIAEAAEAAAA5hoQAAMAAAA2AAAFEgAQAAUAAAAKABAAAwAAADYAAAVCABAABAAAAAFAAAAAAIC:NgAABUIAEAAAAAAAAUAAAAAAgD8wAAABMQAAB4IAEAAAAAAAKgAQAAQAAAABQAAAAADgQDEAAAcSABAAAgAAAAFAAABmZmY:KgAQAAAAAAABAAAHggAQAAAAAAA6ABAAAAAAAAoAEAACAAAAAwAAAzoAEAAAAAAAAAAAB3IAEAAEAAAAlgcQAAIAAABGAhAABAAAAAAAAAiCABAABAAAABoAEIBBAAAABAAAAAFAAAAAAIA:SAAAC:IAEAAFAAAAxgAQAAQAAAAWfhAAAAAAAABgEAAAAAAAAUAAAAAAAAAPAAAKQgAQAAAAAAAWBRAABQAAAAJAAAAAAAA:AAAAPwAAAAAAAAAAFgAAAQAAAAeCABAAAAAAAAoAEAABAAAAKgAQAAQAAAAxAAAHggAQAAAAAAABQAAAAAAAQDoAEAAAAAAAHwAEAzoAEAAAAAAAAAAACCIAEAABAAAACgAQgEEAAAABAAAAAUAAAAAAgD4yAAAPwgAQAAEAAACmChAABAAAAAJAAAAAAAAAAAAAAAAAgD8AAIC:AkAAAAAAAAAAAAAAAAAAAAAAgL4yAAAK8gAQAAIAAAAWDhAAAQAAAEaEIAAAAAAAAAAAAOYeEAADAAAAMgAADfIAEAACAAAARoQgAAAAAAAAAAAAAkAAAAAAgL8AAAAAAACAPwAAAABGDhAAAgAAADIAAA:yABAAAgAAAEYOEAACAAAAAkAAAAAAgD8AAIC:AACAPwAAgL8CQAAAAAAAAAAAgD8AAAAAAACAP0gAAAvyABAAAwAAAEYAEAACAAAARn4QAAAAAAAAYBAAAAAAAAFAAAAAAAAASAAAC:IAEAACAAAA5goQAAIAAACGdxAAAAAAAABgEAAAAAAAAUAAAAAAAAA2AAAFQgAQAAMAAAAKABAAAgAAADIAAA%iABAAAQAAAAYIEAADAAAAAkAAAAAAAAAAAKBAAAAAAAAAoEACQAAAAAAAAAAAcMAAAAAAAABwwDgAAAhSABAAAgAAAFYHEICBAAAAAQAAAAYCEAADAAAANgAABSIAEAACAAAAGgAQAAMAAAAAAAAK8gAQAAIAAABGDhAAAgAAAAJAAAAAAAA:AAAAPwAAAD8AAAA:QQAABfIAEAACAAAARg4QAAIAAAAyAAAMogAQAAEAAABWDRAAAgAAAAJAAAAAAAAAAAAAQAAAAAAAAABABggQAAIAAAAdAAAKYgAQAAAAAABWBhAAAAAAAAJAAAAAAAAAZmZmP2ZmZj8AAAAANwAADDIAEAACAAAAlgUQAAAAAAACQAAAAAAAAAAAAAAAAAAAAAAAANYFEAABAAAAMgAADGIAEAAAAAAABgEQAAIAAAACQAAAAAAAAAAAoEEAAKBBAAAAAAYCEAABAAAAMgAAD2IAEAAAAAAAVgYQAAAAAAACQAAAAAAAAM3MzDuhDuo6AAAAAAJAAAAAAAAAzcwAP6EOajoAAAAASAAAC:IAEAABAAAAlgUQAAAAAABGfhAAAQAAAABgEAABAAAAAUAAAAAAAAASAAABNgAACDIAEAABAAAAAkAAAAAAAAAAAAAAAAAAAAAAAAAVAAABMgAACiIAEAAAAAAACoAgAAAAAAAAAAAAAUAAAAAAgD4qEBAAAwAAADYAAAcyABAAAgAAAEaAIIBBAAAAAAAAAAAAAAA2AAAFQgAQAAIAAAABQAAAAACAPzYAAAUSABAAAwAAABoAEAAAAAAANgAABSIAEAADAAAAOhAQAAMAAAA2AAAFQgAQAAAAAAAKABAABQAAADYAAAVCABAAAwAAAAFAAAAAAIC:NgAABUIAEAABAAAAAUAAAAAAgD8wAAABMQAAB4IAEAABAAAAKgAQAAMAAAABQAAAAADgQDEAAAeCABAAAgAAAAFAAABmZmY:KgAQAAEAAAABAAAHggAQAAEAAAA6ABAAAQAAADoAEAACAAAAAwAAAzoAEAABAAAAAAAAB3IAEAADAAAARgIQAAIAAABGAhAAAwAAAAAAAAiCABAAAwAAABoAEIBBAAAAAwAAAAFAAAAAAIA:SAAAC:IAEAAEAAAAxgAQAAMAAABGfhAAAAAAAABgEAAAAAAAAUAAAAAAAAAyAAAJggAQAAEAAAAKABAABAAAAAFAAAAAAKBAAUAAAAAAcMA4AAAIEgAQAAQAAAA6ABCAgQAAAAEAAAAKABAABAAAAAAAAAoyABAABAAAAEYAEAAEAAAAAkAAAAAAAD8AAAA:AAAAAAAAAABBAAAFwgAQAAAAAABWARAABAAAAA8AAApCABAAAQAAALYPEAAAAAAAAkAAAAAAAD8AAAA:AAAAAAAAAAAWAAABMgAADTIAEAACAAAARoAgAAAAAAAAAAAAAkAAAAAAgD8AAAAAAAAAAAAAAADmGhAAAwAAAAAAAAhCABAAAgAAABoAEIBBAAAAAgAAAAFAAAAAAIA:SAAAC:IAEAACAAAAhgAQAAIAAABGfhAAAAAAAABgEAAAAAAAAUAAAAAAAAAxAAAHggAQAAAAAAABQAAAAAAAAAoAEAACAAAAHwAEAzoAEAAAAAAANgAABjIAEAACAAAARoAgAAAAAAAAAAAANgAABUIAEAACAAAAAUAAAAAAgD82AAAFEgAQAAQAAAAaABAAAAAAADYAAAUiABAABAAAADoQEAADAAAANgAABRIAEAAFAAAAKgAQAAAAAAA2AAAFQgAQAAQAAAABQAAAAACAvzYAAAWCABAAAAAAAAFAAAAAAIA:MAAAATEAAAeCABAAAQAAACoAEAAEAAAAAUAAAAAA4EAxAAAHggAQAAIAAAABQAAAZmZmPzoAEAAAAAAAAQAAB4IAEAABAAAAOgAQAAEAAAA6ABAAAgAAAAMAAAM6ABAAAQAAAAAAAAdyABAABAAAAEYCEAACAAAARgIQAAQAAAAAAAAIggAQAAQAAAAaABCAQQAAAAQAAAABQAAAAACAP0gAAAvyABAABgAAAMYAEAAEAAAARn4QAAAAAAAAYBAAAAAAAAFAAAAAAAAAMgAACYIAEAABAAAACgAQAAYAAAABQAAAAACgQAFAAAAAAHDAOAAACBIAEAAGAAAAOgAQgIEAAAABAAAACgAQAAYAAAAAAAAKwgAQAAUAAAAGBBAABgAAAAJAAAAAAAAAAAAAAAAAAD8AAAA:QQAABTIAEAAFAAAAtg8QAAUAAAAPAAAKggAQAAAAAAAWBRAABQAAAAJAAAAAAAA:AAAAPwAAAAAAAAAAFgAAATEAAAciABAAAAAAAAFAAABmZmY:CgAQAAUAAAABAAAHIgAQAAAAAAAaABAAAAAAAAFAAAAAAIA:AAAAByIAEAADAAAAGgAQAAAAAAAqABAABAAAABIAAAE2AAAFIgAQAAMAAAABQAAAAAAAADYAAAWCABAAAAAAAAFAAAAAAAAAFQAAAQAAAAciABAAAAAAABoAEAADAAAAKgAQAAMAAAAxAAAHIgAQAAAAAAABQAAAAAAAQBoAEAAAAAAAHwAEAxoAEAAAAAAANgAABhIAEAADAAAAKgAQgEEAAAADAAAAMgAACvIAEAACAAAABgUQAAMAAABGhCAAAAAAAAAAAADmHhAAAwAAADIAAA3yABAABAAAAEaEIAAAAAAAAAAAAAJAAAAAAIC:AAAAAAAAAAAAAIC:RgQQAAIAAAAyAAAP8gAQAAQAAABGDhAABAAAAAJAAAAAAIA:AACAvwAAgD8AAIC:AkAAAAAAAAAAAIA:AAAAAAAAgD9IAAAL8gAQAAUAAABGABAABAAAAEZ%EAAAAAAAAGAQAAAAAAABQAAAAAAAAEgAAAvyABAABAAAAOYKEAAEAAAAlnwQAAAAAAAAYBAAAAAAAAFAAAAAAAAAMgAADTIAEAACAAAARoAgAAAAAAAAAAAAAkAAAAAAgD8AAAAAAAAAAAAAAADmChAAAgAAAAAAAAhCABAAAgAAABoAEIBBAAAAAgAAAAFAAAAAAIA:SAAAC:IAEAACAAAAhgAQAAIAAABGfhAAAAAAAABgEAAAAAAAAUAAAAAAAAA2AAAFEgAQAAQAAAAaABAABQAAADYAAAWiABAABAAAAFYBEAACAAAAMgAADGIAEAAAAAAABgEQAAQAAAACQAAAAAAAAAAAAEAAAABAAAAAAKYLEAAEAAAAHQAAB0IAEAABAAAAKgAQAAEAAAABQAAAZmZmPx0AAAeCABAAAAAAADoAEAAAAAAAAUAAAGZmZj83AAAJEgAQAAIAAAAqABAAAQAAAAFAAAAAAAAAGgAQAAAAAAA3AAAJIgAQAAIAAAA6ABAAAAAAAAFAAAAAAAAAKgAQAAAAAAAyAAAMYgAQAAAAAAAGARAAAgAAAAJAAAAAAAAAAACgQQAAoEEAAAAApgkQAAMAAAAyAAAPYgAQAAAAAABWBhAAAAAAAAJAAAAAAAAAzczMO6EO6joAAAAAAkAAAAAAAADNzAA:oQ5qOgAAAABIAAAL8gAQAAIAAACWBRAAAAAAAEZ%EAABAAAAAGAQAAEAAAABQAAAAAAAAAAAAAcyABAAAQAAAEYAEAABAAAAFgUQAAIAAAAVAAABGAAACCIAEAAAAAAAGgAQgEEAAAABAAAACgAQAAEAAAAfAAQDGgAQAAAAAAA2AAAFogAQAAAAAAAGFBAAAAAAADYAAAVCABAAAAAAAAFAAAAAAIA:NgAABRIAEAACAAAAAUAAAAAAAAAwAAABMQAAB0IAEAABAAAAChAQAAIAAAAaABAAAAAAADEAAAeCABAAAQAAAAFAAABd:lM:KgAQAAAAAAABAAAHQgAQAAEAAAA6ABAAAQAAACoAEAABAAAAGAAAB4IAEAABAAAACgAQAAIAAAABQAAAAAAAAAEAAAdCABAAAQAAADoAEAABAAAAKgAQAAEAAAAfAAQDKgAQAAEAAAAyAAAPwgAQAAEAAABWDRAAAAAAAAJAAAAAAAAAAAAAAAAAgD8AAIC:AkAAAAAAAAAAAAAAAAAAAAAAgD9IAAAL8gAQAAIAAADmChAAAQAAAEZ%EAAAAAAAAGAQAAAAAAABQAAAAAAAADIAAA0yABAAAwAAAEaAIAAAAAAAAAAAAAJAAAAAAADAAAAAgAAAAAAAAAAA1gUQAAAAAAA2AAAFQgAQAAMAAAAaABAAAgAAADYAAAXiABAAAAAAAAYGEAADAAAABwAAARIAAAECAAABFQAAARYAAAE2AAAFwgAQAAAAAACmBhAAAAAAADYAAAUiABAAAAAAAAoAEAACAAAAMgAAD2IAEAAAAAAAVgYQAAAAAAACQAAAAAAAAAAAAD8AAADAAAAAAAJAAAAAAAAAAAAAPAAAAkAAAAAASAAAC:IAEAACAAAAlgUQAAAAAABGfhAAAgAAAABgEAACAAAAAUAAAAAAAAAyAAAJIgAQAAAAAAAKABAAAgAAAAFAAAACgQDAAUAAAAAAUEAyAAAKEgAQAAIAAAAKgCAAAAAAAAAAAAAaABAAAAAAADoAEAAAAAAAAAAACCIAEAACAAAAGhAQgEEAAAABAAAAAUAAAAAAgD9IAAAL8gAQAAMAAABGABAAAgAAAEZ%EAAAAAAAAGAQAAAAAAABQAAAAAAAADYAAAWiABAAAAAAAKYeEAAAAAAANgAABUIAEAAAAAAAAUAAAAAAgD82AAAFEgAQAAQAAAABQAAAAAAAADAAAAExAAAHQgAQAAEAAAAaABAAAAAAABoQEAACAAAAMQAAB4IAEAABAAAAAUAAAF3%Uz8qABAAAAAAAAEAAAdCABAAAQAAADoAEAABAAAAKgAQAAEAAAAYAAAHggAQAAEAAAAKABAABAAAAAFAAAAAAAAAAQAAB0IAEAABAAAAOgAQAAEAAAAqABAAAQAAAB8ABAMqABAAAQAAADIAAA:CABAAAQAAAFYNEAAAAAAAAkAAAAAAAAAAAAAAAACAPwAAgL8CQAAAAAAAAAAAAAAAAAAAAACAP0gAAAvyABAABAAAAOYKEAABAAAARn4QAAAAAAAAYBAAAAAAAAFAAAAAAAAAMgAADTIAEAAFAAAARoAgAAAAAAAAAAAAAkAAAAAAAEAAAAAAAAAAAAAAAADWBRAAAAAAADYAAAVCABAABQAAABoAEAAEAAAANgAABeIAEAAAAAAABgYQAAUAAAAHAAABEgAAAQIAAAEVAAABFgAAATYAAAXCABAAAAAAAKYGEAAAAAAANgAABSIAEAAAAAAACgAQAAQAAAAyAAAPYgAQAAAAAABWBhAAAAAAAAJAAAAAAAAAAAAAPwAAAMAAAAAAAkAAAAAAAAAAAAY:AAACQAAAAABIAAAL8gAQAAQAAACWBRAAAAAAAEZ%EAACAAAAAGAQAAIAAAABQAAAAAAAADIAAAkiABAAAAAAAAoAEAAEAAAAAUAAAAKBAMABQAAAAABQQDIAAAtCABAAAgAAAAqAIIBBAAAAAAAAAAAAAAAaABAAAAAAADoAEAAAAAAAMgAAC:IAEAAEAAAApoogAAAAAAAAAAAAJgIQAAIAAAAGEBCAQQAAAAMAAAAAAAAK8gAQAAQAAABGDhAABAAAAAJAAAAAAAA:AAAAPwAAAD8AAAA:QQAABfIAEAAEAAAARg4QAAQAAABLAAAGYgAQAAAAAAD2DhCAgQAAAAQAAAA2AAAFggAQAAIAAAAaEBAAAQAAADIAAA0yABAABQAAAEaAIAAAAAAAAAAAAAJAAAAAAIA:AAAAAAAAAAAAAAAA5goQAAIAAAAAAAAIQgAQAAUAAAAaABCAQQAAAAUAAAABQAAAAACAP0gAAAvyABAABQAAAIYAEAAFAAAAFn4QAAAAAAAAYBAAAAAAAAFAAAAAAAAANgAABRIAEAAFAAAACgAQAAMAAAAyAAAPwgAQAAEAAAAGBBAABQAAAAJAAAAAAAAAAAAAAAAAgEAAAIBAAkAAAAAAAAAAAAAAAAAAPwAAAD9BAAAFwgAQAAEAAACmDhAAAQAAADIAAAxiABAAAAAAAKYLEAABAAAAAkAAAAAAAAAAAIBBAACAQQAAAABWBhAAAAAAADIAAA9iABAAAAAAAFYGEAAAAAAAAkAAAAAAAADNzMw7oQ7qOgAAAAACQAAAAAAAAM3MTDuhDmo6AAAAAEgAAAvyABAAAwAAAJYFEAAAAAAARn4QAAEAAAAAYBAAAQAAAAFAAAAAAAAAHQAACfIAEAAEAAAARg4QgIEAAAAEAAAAtgsQgIEAAAAEAAAAAQAACvIAEAAEAAAARg4QAAQAAAACQAAAAACAPwAAgD8AAEA:AABAPwAAAAciABAAAAAAABoAEAAEAAAACgAQAAQAAAAOAAAHYgAQAAAAAACmCxAABAAAAFYFEAAAAAAANgAABaIAEAACAAAA9h8QAAMAAAAyAAANMgAQAAQAAABGgCAAAAAAAAAAAAACQAAAAAAAAAAAgD8AAAAAAAAAAEYAEAACAAAAAAAACEIAEAAEAAAAGgAQgEEAAAAEAAAAAUAAAAAAgD9IAAAL8gAQAAQAAACGABAABAAAAEZ%EAAAAAAAAGAQAAAAAAABQAAAAAAAADIAAAqCABAAAAAAABoAEIBBAAAAAAAAAAoAEAAEAAAAAUAAAAAAgD8AAAAIMgAQAAQAAADmChAAAgAAAEaAIAAAAAAAAAAAAAAAAAhCABAABAAAABoAEIBBAAAABAAAAAFAAAAAAIA:SAAAC:IAEAAEAAAAhgAQAAQAAABGfhAAAAAAAABgEAAAAAAAAUAAAAAAAAAyIAAKEgAQAAQAAAAqABCAQQAAAAAAAAAKABAABAAAADoAEAAAAAAAMgAADTIAEAAFAAAARoAgAAAAAAAAAAAAAkAAAAAAAAAAAADAAAAAAAAAAABGABAAAgAAAAAAAAhCABAABQAAABoAEIBBAAAABQAAAAFAAAAAAIA:SAAAC:IAEAAFAAAAhgAQAAUAAABGfhAAAAAAAABgEAAAAAAAAUAAAAAAAAAyAAAKIgAQAAAAAAAaABCAQQAAAAAAAAAKABAABQAAAAFAAAAAAIA:MgAADTIAEAACAAAARoAgAAAAAAAAAAAAAkAAAAAAgD8AAADAAAAAAAAAAADmChAAAgAAAAAAAAhCABAAAgAAABoAEIBBAAAAAgAAAAFAAAAAAIA:SAAAC:IAEAACAAAAhgAQAAIAAABGfhAAAAAAAABgEAAAAAAAAUAAAAAAAAAyIAAKIgAQAAQAAAAqABCAQQAAAAAAAAAKABAAAgAAABoAEAAAAAAAOAAABzIgEAAAAAAARgAQAAMAAABGABAABAAAABIAAAE2AAAFMiAQAAAAAABGABAAAQAAADYAAAUSABAAAAAAAAFAAAAAAAAAFQAAARIAAAE2AAAIMiAQAAAAAAACQAAAAAAAAAAAAAAAAAAAAAAAABUAAAExAAAHEgAQAAAAAAABQAAAAAAAAAoAEAAAAAAAHwAEAwoAEAAAAAAANgAABTIAEAAAAAAAFhUQAAEAAAA2AAAFQgAQAAAAAAABQAAAAACAPzYAAAUSABAAAQAAAAFAAAAAAAAAMAAAATEAAAeCABAAAAAAACoQEAACAAAACgAQAAAAAAAxAAAHEgAQAAIAAAABQAAAXf5TPyoAEAAAAAAAAQAAB4IAEAAAAAAAOgAQAAAAAAAKABAAAgAAABgAAAcSABAAAgAAAAoAEAABAAAAAUAAAAAAAAABAAAHggAQAAAAAAA6ABAAAAAAAAoAEAACAAAAHwAEAzoAEAAAAAAAMgAADzIAEAACAAAAFgUQAAAAAAACQAAAAACAPwAAgL8AAAAAAAAAAAJAAAAAAAAAAACAPwAAAAAAAAAASAAAC:IAEAABAAAARgAQAAIAAAAWfhAAAAAAAABgEAAAAAAAAUAAAAAAAAAyAAANMgAQAAIAAABGgCAAAAAAAAAAAAACQAAAAAAAgAAAAMAAAAAAAAAAABYFEAAAAAAANgAABUIAEAACAAAAGgAQAAEAAAA2AAAFcgAQAAAAAAAWBhAAAgAAAAcAAAESAAABAgAAARUAAAEWAAABNgAABSIAEAABAAAAKgAQAAAAAAAyAAAPYgAQAAAAAAAGARAAAQAAAAJAAAAAAAAAAAAAPwAAAMAAAAAAAkAAAAAAAAAAAAA8AAACQAAAAABIAAAL8gAQAAEAAACWBRAAAAAAAEZ%EAACAAAAAGAQAAIAAAABQAAAAAAAADIAAAkiABAAAAAAAAoAEAABAAAAAUAAAAKBAMABQAAAAABQQDIAAAoSABAAAAAAABqAIAAAAAAAAAAAABoAEAAAAAAACgAQAAAAAAAAAAAIIgAQAAEAAAAKABCAQQAAAAAAAAABQAAAAACAPzYAAAUSABAAAQAAAAoQEAAAAAAASAAAC:IAEAABAAAARgAQAAEAAABGfhAAAAAAAABgEAAAAAAAAUAAAAAAAAA2AAAFUgAQAAEAAAD2HhAAAQAAADYAAAWCABAAAQAAAAFAAAAAAIA:NgAABRIAEAACAAAAAUAAAAAAAAAwAAABMQAABxIAEAADAAAACgAQAAEAAAA6EBAAAgAAADEAAAciABAAAwAAAAFAAABd:lM:OgAQAAEAAAABAAAHEgAQAAMAAAAaABAAAwAAAAoAEAADAAAAGAAAByIAEAADAAAACgAQAAIAAAABQAAAAAAAAAEAAAcSABAAAwAAABoAEAADAAAACgAQAAMAAAAfAAQDCgAQAAMAAAAyAAAPMgAQAAMAAAAmChAAAQAAAAJAAAAAAIA:AACAvwAAAAAAAAAAAkAAAAAAAAAAAIA:AAAAAAAAAABIAAAL8gAQAAIAAABGABAAAwAAABZ%EAAAAAAAAGAQAAAAAAABQAAAAAAAADIAAA0yABAAAwAAAEaAIAAAAAAAAAAAAAJAAAAAAAAAAAAAQAAAAAAAAAAAJgoQAAEAAAA2AAAFQgAQAAMAAAAaABAAAgAAADYAAAXSABAAAQAAAFYIEAADAAAABwAAARIAAAECAAABFQAAARYAAAE2AAAFIgAQAAIAAAA6ABAAAQAAADIAAA:CABAAAQAAAAYEEAACAAAAAkAAAAAAAAAAAAAAAAAAPwAAAMACQAAAAAAAAAAAAAAAAAY:AAACQEgAAAvyABAAAgAAAOYKEAABAAAARn4QAAIAAAAAYBAAAgAAAAFAAAAAAAAAMgAACUIAEAABAAAACgAQAAIAAAABQAAAAoEAwAFAAAAAAFBAMgAACyIAEAAAAAAAGoAggEEAAAAAAAAAAAAAACoAEAABAAAACgAQAAEAAAAyAAAL8gAQAAIAAAD2jyAAAAAAAAAAAAAWARAAAAAAAFYVEIBBAAAAAwAAAAAAAAryABAAAgAAAEYOEAACAAAAAkAAAAAAAD8AAAA:AAAAPwAAAD9BAAAF8gAQAAIAAABGDhAAAgAAAEsAAAZSABAAAQAAAPYOEICBAAAAAgAAADYAAAVCABAAAAAAAAoQEAAAAAAAMgAADTIAEAADAAAARoAgAAAAAAAAAAAAAkAAAAAAAAAAAIA:AAAAAAAAAABmChAAAAAAAAAAAAhCABAAAwAAABoAEIBBAAAAAwAAAAFAAAAAAIA:SAAAC:IAEAADAAAAhgAQAAMAAABGfhAAAAAAAABgEAAAAAAAAUAAAAAAAAA2AAAFEgAQAAMAAAAaABAAAQAAADIAAA%iABAAAQAAAAYEEAADAAAAAkAAAAAAAAAAAIBAAAAAAAAAgEACQAAAAAAAAAAAAD8AAAAAAAAAP0EAAAWiABAAAQAAAFYNEAABAAAAMgAADDIAEAABAAAA1gUQAAEAAAACQAAAAACAQQAAgEEAAAAAAAAAAIYAEAABAAAAMgAADzIAEAABAAAARgAQAAEAAAACQAAAzczMO6EO6joAAAAAAAAAAAJAAADNzEw7oQ5qOgAAAAAAAAAASAAAC:IAEAABAAAARgAQAAEAAABGfhAAAQAAAABgEAABAAAAAUAAAAAAAAAdAAAJ8gAQAAIAAABGDhCAgQAAAAIAAAC2CxCAgQAAAAIAAAABAAAK8gAQAAIAAABGDhAAAgAAAAJAAAAAAIA:AACAPwAAQD8AAEA:AAAAB0IAEAAAAAAAGgAQAAIAAAAKABAAAgAAAA4AAAfCABAAAQAAAKYOEAACAAAApgoQAAAAAAA2AAAFggAQAAAAAAAqEBAAAwAAADIAAA0yABAAAgAAAEaAIAAAAAAAAAAAAAJAAAAAAIA:AAAAAAAAAAAAAAAANg8QAAAAAAAAAAAIQgAQAAIAAAAaABCAQQAAAAIAAAABQAAAAACAP0gAAAvyABAAAgAAAIYAEAACAAAARn4QAAAAAAAAYBAAAAAAAAFAAAAAAAAAMgAACkIAEAAAAAAAKgAQgEEAAAABAAAAGgAQAAIAAAABQAAAAACAPwAAAAgyABAAAgAAAHYPEAAAAAAARoAgAAAAAAAAAAAAAAAACEIAEAACAAAAGgAQgEEAAAACAAAAAUAAAAAAgD9IAAAL8gAQAAIAAACGABAAAgAAAEZ%EAAAAAAAAGAQAAAAAAABQAAAAAAAADIgAApCABAAAgAAADoAEIBBAAAAAQAAABoAEAACAAAAKgAQAAAAAAAyAAANMgAQAAMAAABGgCAAAAAAAAAAAAACQAAAAAAAwAAAAAAAAAAAAAAAADYPEAAAAAAAAAAACEIAEAADAAAAGgAQgEEAAAADAAAAAUAAAAAAgD9IAAAL8gAQAAMAAACGABAAAwAAAEZ%EAAAAAAAAGAQAAAAAAABQAAAAAAAADIAAAoSABAAAAAAACoAEIBBAAAAAQAAABoAEAADAAAAAUAAAAAAgD8yAAANMgAQAAMAAABGgCAAAAAAAAAAAAACQAAAAAAAwAAAgD8AAAAAAAAAAHYPEAAAAAAAAAAACEIAEAADAAAAGgAQgEEAAAADAAAAAUAAAAAAgD9IAAAL8gAQAAMAAACGABAAAwAAAEZ%EAAAAAAAAGAQAAAAAAABQAAAAAAAADIgAAqCABAAAgAAADoAEIBBAAAAAQAAABoAEAADAAAACgAQAAAAAAA4AAAHwiAQAAAAAAAGBBAAAQAAAKYOEAACAAAAEgAAATYAAAjCIBAAAAAAAAJAAAAAAAAAAAAAAAAAAAAAAAAAFQAAAT4AAAFTVEFUdAAAAFgBAAAHAAAAAAAAAAYAAACfAAAAAAAAABAAAAATAAAADwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACMAAAAAAAAAAAAAAAAAAABGAAAAAwAAAAcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-kha_Shaders.smaa_blend_weight_vertData0 = "s1684:AXBvcwAAASRHbG9iYWxzAAACc2NyZWVuU2l6ZQAAAAAACAAAAAIBc2NyZWVuU2l6ZUludgAIAAAACAAAAAIBRFhCQ:tJQ9%XG8PQa3ZkPKHRRTEBAAAAsAQAAAUAAAA0AAAAIAEAAFQBAAAMAgAANAQAAFJERUbkAAAAAQAAAEgAAAABAAAAHAAAAAAE:v8AAQAAugAAADwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAJEdsb2JhbHMAq6urPAAAAAIAAABgAAAAEAAAAAAAAAAAAAAAkAAAAAAAAAAIAAAAAgAAAJwAAAAAAAAArAAAAAgAAAAIAAAAAgAAAJwAAAAAAAAAc2NyZWVuU2l6ZQCrAQADAAEAAgAAAAAAAAAAAHNjcmVlblNpemVJbnYATWljcm9zb2Z0IChSKSBITFNMIFNoYWRlciBDb21waWxlciAxMC4xAKurSVNHTiwAAAABAAAACAAAACAAAAAAAAAAAAAAAAMAAAAAAAAAAwMAAFRFWENPT1JEAKurq09TR06wAAAABgAAAAgAAACYAAAAAAAAAAAAAAADAAAAAAAAAA8AAACYAAAAAQAAAAAAAAADAAAAAQAAAA8AAACYAAAAAgAAAAAAAAADAAAAAgAAAA8AAACYAAAAAwAAAAAAAAADAAAAAwAAAAMMAACYAAAABAAAAAAAAAADAAAAAwAAAAwDAAChAAAAAAAAAAEAAAADAAAABAAAAA8AAABURVhDT09SRABTVl9Qb3NpdGlvbgCrq6tTSERSIAIAAEAAAQCIAAAAWQAABEaOIAAAAAAAAQAAAF8AAAMyEBAAAAAAAGUAAAPyIBAAAAAAAGUAAAPyIBAAAQAAAGUAAAPyIBAAAgAAAGUAAAMyIBAAAwAAAGUAAAPCIBAAAwAAAGcAAATyIBAABAAAAAEAAABoAAACAwAAADIAAA:yABAAAAAAAEYUEAAAAAAAAkAAAAAAAD8AAAA:AAAAPwAAAD8CQAAAAAAAPwAAAD8AAAA:AAAAPzIAAA3yABAAAQAAAKaPIAAAAAAAAAAAAAJAAAAAAIC%AACgPwAAAL4AAAC%hg0QAAAAAAA2AAAF8iAQAAAAAACGDRAAAQAAADIAAA3yABAAAgAAAOaOIAAAAAAAAAAAAAJAAAAAAAC%AACAvgAAAL4AAKA:Rg4QAAAAAAA4AAAIMiAQAAMAAADmChAAAAAAAEaAIAAAAAAAAAAAADYAAAXyIBAAAQAAAEYOEAACAAAANgAABcIAEAABAAAAVg0QAAIAAAAyAAAN8iAQAAIAAACmjyAAAAAAAAAAAAACQAAAAAAAwgAAAEIAAADCAAAAQkYOEAABAAAAMgAAD8IgEAADAAAABhQQAAAAAAACQAAAAAAAAAAAAAAAAAA:AAAAPwJAAAAAAAAAAAAAAAAAAD8AAAA:NgAABTIgEAAEAAAARhAQAAAAAAA2AAAIwiAQAAQAAAACQAAAAAAAAAAAAAAAAAA:AACAPz4AAAFTVEFUdAAAAAwAAAADAAAAAAAAAAcAAAAGAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-kha_Shaders.smaa_edge_detect_fragData0 = "s2635:AAJfY29sb3JUZXhfc2FtcGxlcgAAY29sb3JUZXgAAABEWEJDGlOFKsrBMllxtOQiZOI5xwEAAACYBwAABQAAADQAAADcAAAAWAEAAIwBAAAcBwAAUkRFRqAAAAAAAAAAAAAAAAIAAAAcAAAAAAT::wABAAB3AAAAXAAAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAEAAABuAAAAAgAAAAUAAAAEAAAA:::::wAAAAABAAAADQAAAF9jb2xvclRleF9zYW1wbGVyAGNvbG9yVGV4AE1pY3Jvc29mdCAoUikgSExTTCBTaGFkZXIgQ29tcGlsZXIgMTAuMQCrSVNHTnQAAAAEAAAACAAAAGgAAAAAAAAAAAAAAAMAAAAAAAAADw8AAGgAAAABAAAAAAAAAAMAAAABAAAADw8AAGgAAAACAAAAAAAAAAMAAAACAAAADw8AAGgAAAADAAAAAAAAAAMAAAADAAAAAwMAAFRFWENPT1JEAKurq09TR04sAAAAAQAAAAgAAAAgAAAAAAAAAAAAAAADAAAAAAAAAA8AAABTVl9UYXJnZXQAq6tTSERSiAUAAEAAAABiAQAAWgAAAwBgEAAAAAAAWBgABABwEAAAAAAAVVUAAGIQAAPyEBAAAAAAAGIQAAPyEBAAAQAAAGIQAAPyEBAAAgAAAGIQAAMyEBAAAwAAAGUAAAPyIBAAAAAAAGgAAAIFAAAASAAAC:IAEAAAAAAARhAQAAMAAABGfhAAAAAAAABgEAAAAAAAAUAAAAAAAABIAAAL8gAQAAEAAABGEBAAAAAAAEZ%EAAAAAAAAGAQAAAAAAABQAAAAAAAAAAAAAhyABAAAQAAAEYCEAAAAAAARgIQgEEAAAABAAAANAAACYIAEAAAAAAAGgAQgIEAAAABAAAACgAQgIEAAAABAAAANAAACBIAEAABAAAAKgAQgIEAAAABAAAAOgAQAAAAAABIAAAL8gAQAAIAAADmGhAAAAAAAEZ%EAAAAAAAAGAQAAAAAAABQAAAAAAAAAAAAAhyABAAAgAAAEYCEAAAAAAARgIQgEEAAAACAAAANAAACYIAEAAAAAAAGgAQgIEAAAACAAAACgAQgIEAAAACAAAANAAACCIAEAABAAAAKgAQgIEAAAACAAAAOgAQAAAAAAAdAAAKwgAQAAEAAAAGBBAAAQAAAAJAAAAAAAAAAAAAAM3MzD3NzMw9AQAACsIAEAABAAAApg4QAAEAAAACQAAAAAAAAAAAAAAAAIA:AACAPw8AAAqCABAAAAAAAOYKEAABAAAAAkAAAAAAgD8AAIA:AAAAAAAAAAAYAAAHggAQAAAAAAA6ABAAAAAAAAFAAAAAAAAADQAEAzoAEAAAAAAASAAAC:IAEAACAAAARhAQAAEAAABGfhAAAAAAAABgEAAAAAAAAUAAAAAAAAAAAAAIcgAQAAIAAABGAhAAAAAAAEYCEIBBAAAAAgAAADQAAAmCABAAAAAAABoAEICBAAAAAgAAAAoAEICBAAAAAgAAADQAAAgSABAAAgAAACoAEICBAAAAAgAAADoAEAAAAAAASAAAC:IAEAADAAAA5hoQAAEAAABGfhAAAAAAAABgEAAAAAAAAUAAAAAAAAAAAAAIcgAQAAMAAABGAhAAAAAAAEYCEIBBAAAAAwAAADQAAAmCABAAAAAAABoAEICBAAAAAwAAAAoAEICBAAAAAwAAADQAAAgiABAAAgAAACoAEICBAAAAAwAAADoAEAAAAAAANAAABzIAEAACAAAARgAQAAEAAABGABAAAgAAAEgAAAvyABAAAwAAAEYQEAACAAAARn4QAAAAAAAAYBAAAAAAAAFAAAAAAAAAAAAACHIAEAADAAAARgIQAAAAAABGAhCAQQAAAAMAAAA0AAAJggAQAAAAAAAaABCAgQAAAAMAAAAKABCAgQAAAAMAAAA0AAAIEgAQAAMAAAAqABCAgQAAAAMAAAA6ABAAAAAAAEgAAAvyABAABAAAAOYaEAACAAAARn4QAAAAAAAAYBAAAAAAAAFAAAAAAAAAAAAACHIAEAAAAAAARgIQAAAAAABGAhCAQQAAAAQAAAA0AAAJEgAQAAAAAAAaABCAgQAAAAAAAAAKABCAgQAAAAAAAAA0AAAIIgAQAAMAAAAqABCAgQAAAAAAAAAKABAAAAAAADQAAAcyABAAAAAAAEYAEAACAAAARgAQAAMAAAA0AAAHEgAQAAAAAAAaABAAAAAAAAoAEAAAAAAAAAAAB2IAEAAAAAAABgEQAAEAAAAGARAAAQAAAB0AAAcyABAAAAAAAJYFEAAAAAAABgAQAAAAAAABAAAKMgAQAAAAAABGABAAAAAAAAJAAAAAAIA:AACAPwAAAAAAAAAAOAAABzIgEAAAAAAARgAQAAAAAADmChAAAQAAADYAAAjCIBAAAAAAAAJAAAAAAAAAAAAAAAAAAAAAAAAAPgAAAVNUQVR0AAAAJwAAAAUAAAAAAAAABQAAABsAAAAAAAAAAgAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-kha_Shaders.smaa_edge_detect_vertData0 = "s1438:AXBvcwAAASRHbG9iYWxzAAABc2NyZWVuU2l6ZUludgAAAAAACAAAAAIBRFhCQ2MEpf99vnGzBoKQRJKZVrgBAAAADAQAAAUAAAA0AAAA:AAAADABAADQAQAAkAMAAFJERUbAAAAAAQAAAEgAAAABAAAAHAAAAAAE:v8AAQAAmAAAADwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAJEdsb2JhbHMAq6urPAAAAAEAAABgAAAAEAAAAAAAAAAAAAAAeAAAAAAAAAAIAAAAAgAAAIgAAAAAAAAAc2NyZWVuU2l6ZUludgCrqwEAAwABAAIAAAAAAAAAAABNaWNyb3NvZnQgKFIpIEhMU0wgU2hhZGVyIENvbXBpbGVyIDEwLjEASVNHTiwAAAABAAAACAAAACAAAAAAAAAAAAAAAAMAAAAAAAAAAwMAAFRFWENPT1JEAKurq09TR06YAAAABQAAAAgAAACAAAAAAAAAAAAAAAADAAAAAAAAAA8AAACAAAAAAQAAAAAAAAADAAAAAQAAAA8AAACAAAAAAgAAAAAAAAADAAAAAgAAAA8AAACAAAAAAwAAAAAAAAADAAAAAwAAAAMMAACJAAAAAAAAAAEAAAADAAAABAAAAA8AAABURVhDT09SRABTVl9Qb3NpdGlvbgCrq6tTSERSuAEAAEAAAQBuAAAAWQAABEaOIAAAAAAAAQAAAF8AAAMyEBAAAAAAAGUAAAPyIBAAAAAAAGUAAAPyIBAAAQAAAGUAAAPyIBAAAgAAAGUAAAMyIBAAAwAAAGcAAATyIBAABAAAAAEAAABoAAACAQAAADIAAA:yABAAAAAAAEYUEAAAAAAAAkAAAAAAAD8AAAC:AAAAPwAAAL8CQAAAAAAAPwAAAD8AAAA:AAAAPzIAAA3yIBAAAAAAAEaEIAAAAAAAAAAAAAJAAAAAAIC:AAAAAAAAAAAAAIA:Rg4QAAAAAAAyAAAN8iAQAAEAAABGhCAAAAAAAAAAAAACQAAAAACAPwAAAAAAAAAAAACAv0YOEAAAAAAAMgAADfIgEAACAAAARoQgAAAAAAAAAAAAAkAAAAAAAMAAAAAAAAAAAAAAAEBGDhAAAAAAADIAAA8yIBAAAwAAAEYQEAAAAAAAAkAAAAAAAD8AAAC:AAAAAAAAAAACQAAAAAAAPwAAAD8AAAAAAAAAADYAAAUyIBAABAAAAEYQEAAAAAAANgAACMIgEAAEAAAAAkAAAAAAAAAAAAAAAAAAPwAAgD8%AAABU1RBVHQAAAAIAAAAAQAAAAAAAAAGAAAABQAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-kha_Shaders.smaa_neighborhood_blend_fragData0 = "s2490:AAVfYmxlbmRUZXhfc2FtcGxlcgAAX2NvbG9yVGV4X3NhbXBsZXIAAWJsZW5kVGV4AABjb2xvclRleAABJEdsb2JhbHMAAAFzY3JlZW5TaXplSW52AAAAAAAIAAAAAgFEWEJDsyJjLpiVqYIgmI%b6ALRWQEAAADsBgAABQAAADQAAACwAQAA:AEAADACAABwBgAAUkRFRnQBAAABAAAA:AAAAAUAAAAcAAAAAAT::wABAABMAQAAvAAAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAEAAADOAAAAAwAAAAAAAAAAAAAAAAAAAAEAAAABAAAAAQAAAOAAAAACAAAABQAAAAQAAAD:::::AAAAAAEAAAANAAAA6QAAAAIAAAAFAAAABAAAAP::::8BAAAAAQAAAA0AAADyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAF9ibGVuZFRleF9zYW1wbGVyAF9jb2xvclRleF9zYW1wbGVyAGJsZW5kVGV4AGNvbG9yVGV4ACRHbG9iYWxzAKvyAAAAAQAAABQBAAAQAAAAAAAAAAAAAAAsAQAAAAAAAAgAAAACAAAAPAEAAAAAAABzY3JlZW5TaXplSW52AKurAQADAAEAAgAAAAAAAAAAAE1pY3Jvc29mdCAoUikgSExTTCBTaGFkZXIgQ29tcGlsZXIgMTAuMQBJU0dORAAAAAIAAAAIAAAAOAAAAAAAAAAAAAAAAwAAAAAAAAAPDwAAOAAAAAEAAAAAAAAAAwAAAAEAAAADAwAAVEVYQ09PUkQAq6urT1NHTiwAAAABAAAACAAAACAAAAAAAAAAAAAAAAMAAAAAAAAADwAAAFNWX1RhcmdldACrq1NIRFI4BAAAQAAAAA4BAABZAAAERo4gAAAAAAABAAAAWgAAAwBgEAAAAAAAWgAAAwBgEAABAAAAWBgABABwEAAAAAAAVVUAAFgYAAQAcBAAAQAAAFVVAABiEAAD8hAQAAAAAABiEAADMhAQAAEAAABlAAAD8iAQAAAAAABoAAACBAAAAEgAAAvyABAAAAAAAEYQEAAAAAAARn4QAAAAAAAAYBAAAAAAAAFAAAAAAAAASAAAC:IAEAABAAAA5hoQAAAAAABGfhAAAAAAAABgEAAAAAAAAUAAAAAAAABIAAAL8gAQAAIAAABGEBAAAQAAANZyEAAAAAAAAGAQAAAAAAABQAAAAAAAADYAAAUSABAAAgAAADoAEAAAAAAANgAABSIAEAACAAAAGgAQAAEAAAARAAAKEgAQAAAAAABGDhAAAgAAAAJAAAAAAIA:AACAPwAAgD8AAIA:MQAABxIAEAAAAAAACgAQAAAAAAABQAAArMUnNx8ABAMKABAAAAAAAEgAAAvyIBAAAAAAAEYQEAABAAAARn4QAAEAAAAAYBAAAQAAAAFAAAAAAAAAEgAAATQAAAcSABAAAAAAADoAEAAAAAAAKgAQAAIAAAA0AAAHIgAQAAAAAAA6ABAAAgAAABoAEAACAAAAMQAABxIAEAAAAAAAGgAQAAAAAAAKABAAAAAAADYAAAVSABAAAQAAAAYCEAACAAAANgAACKIAEAABAAAAAkAAAAAAAAAAAAAAAAAAAAAAAAA2AAAFEgAQAAIAAAABQAAAAAAAADcAAAnyABAAAwAAAAYAEAAAAAAARg4QAAEAAABGDBAAAgAAADcAAAkyABAAAAAAAAYAEAAAAAAAhgAQAAEAAADWBRAAAgAAAA8AAApCABAAAAAAAEYAEAAAAAAAAkAAAAAAgD8AAIA:AAAAAAAAAAAOAAAHMgAQAAAAAABGABAAAAAAAKYKEAAAAAAAOAAAC:IAEAABAAAARoQgAAAAAAAAAAAAAkAAAAAAgD8AAIA:AACAvwAAgL8yAAAP8gAQAAIAAABGFBAAAQAAAAJAAAAAAIA:AACAvwAAgD8AAIC:AkAAAAAAAAAAAIA:AAAAAAAAgD8yAAAJ8gAQAAEAAABGDhAAAwAAAEYOEAABAAAARg4QAAIAAAAyAAAP8gAQAAEAAABGDhAAAQAAAAJAAAAAAIA:AACAvwAAgD8AAIC:AkAAAAAAAAAAAIA:AAAAAAAAgD9IAAAL8gAQAAIAAABGABAAAQAAAEZ%EAABAAAAAGAQAAEAAAABQAAAAAAAAEgAAAvyABAAAQAAAOYKEAABAAAARn4QAAEAAAAAYBAAAQAAAAFAAAAAAAAAOAAAB:IAEAABAAAAVgUQAAAAAABGDhAAAQAAADIAAAnyIBAAAAAAAEYOEAACAAAABgAQAAAAAABGDhAAAQAAABUAAAE%AAABU1RBVHQAAAAeAAAABAAAAAAAAAADAAAADQAAAAAAAAAAAAAAAgAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAAAAAABQAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-kha_Shaders.smaa_neighborhood_blend_vertData0 = "s1203:AXBvcwAAASRHbG9iYWxzAAABc2NyZWVuU2l6ZUludgAAAAAACAAAAAIBRFhCQwjEJl7yyOeRSGFzdzc78RABAAAAXAMAAAUAAAA0AAAA:AAAADABAACgAQAA4AIAAFJERUbAAAAAAQAAAEgAAAABAAAAHAAAAAAE:v8AAQAAmAAAADwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAJEdsb2JhbHMAq6urPAAAAAEAAABgAAAAEAAAAAAAAAAAAAAAeAAAAAAAAAAIAAAAAgAAAIgAAAAAAAAAc2NyZWVuU2l6ZUludgCrqwEAAwABAAIAAAAAAAAAAABNaWNyb3NvZnQgKFIpIEhMU0wgU2hhZGVyIENvbXBpbGVyIDEwLjEASVNHTiwAAAABAAAACAAAACAAAAAAAAAAAAAAAAMAAAAAAAAAAwMAAFRFWENPT1JEAKurq09TR05oAAAAAwAAAAgAAABQAAAAAAAAAAAAAAADAAAAAAAAAA8AAABQAAAAAQAAAAAAAAADAAAAAQAAAAMMAABZAAAAAAAAAAEAAAADAAAAAgAAAA8AAABURVhDT09SRABTVl9Qb3NpdGlvbgCrq6tTSERSOAEAAEAAAQBOAAAAWQAABEaOIAAAAAAAAQAAAF8AAAMyEBAAAAAAAGUAAAPyIBAAAAAAAGUAAAMyIBAAAQAAAGcAAATyIBAAAgAAAAEAAABoAAACAQAAADIAAA:yABAAAAAAAEYUEAAAAAAAAkAAAAAAAD8AAAC:AAAAPwAAAL8CQAAAAAAAPwAAAD8AAAA:AAAAPzIAAA3yIBAAAAAAAEaEIAAAAAAAAAAAAAJAAAAAAIA:AAAAAAAAAAAAAIC:Rg4QAAAAAAAyAAAPMiAQAAEAAABGEBAAAAAAAAJAAAAAAAA:AAAAvwAAAAAAAAAAAkAAAAAAAD8AAAA:AAAAAAAAAAA2AAAFMiAQAAIAAABGEBAAAAAAADYAAAjCIBAAAgAAAAJAAAAAAAAAAAAAAAAAAD8AAIA:PgAAAVNUQVR0AAAABgAAAAEAAAAAAAAABAAAAAMAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-kha_Shaders.ssao_pass_fragData0 = "s4247:AAVfZ2J1ZmZlckRfc2FtcGxlcgAAX2didWZmZXIwX3NhbXBsZXIAAWdidWZmZXJEAABnYnVmZmVyMAABJEdsb2JhbHMAAAVleWVMb29rAAAAAAAMAAAAAwFjYW1lcmFQcm9qABAAAAAIAAAAAgFzY3JlZW5TaXplABgAAAAIAAAAAgFleWUAIAAAAAwAAAADAWludlZQADAAAABAAAAABAREWEJDUnxHbuq1YLxs5fSb0C1cSwEAAADQCwAABQAAADQAAABMAgAAmAIAAMwCAABUCwAAUkRFRhACAAABAAAA:AAAAAUAAAAcAAAAAAT::wABAADoAQAAvAAAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAEAAADOAAAAAwAAAAAAAAAAAAAAAAAAAAEAAAABAAAAAQAAAOAAAAACAAAABQAAAAQAAAD:::::AAAAAAEAAAANAAAA6QAAAAIAAAAFAAAABAAAAP::::8BAAAAAQAAAA0AAADyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAF9nYnVmZmVyRF9zYW1wbGVyAF9nYnVmZmVyMF9zYW1wbGVyAGdidWZmZXJEAGdidWZmZXIwACRHbG9iYWxzAKvyAAAABQAAABQBAABwAAAAAAAAAAAAAACMAQAAAAAAAAwAAAACAAAAlAEAAAAAAACkAQAAEAAAAAgAAAACAAAAsAEAAAAAAADAAQAAGAAAAAgAAAACAAAAsAEAAAAAAADLAQAAIAAAAAwAAAACAAAAlAEAAAAAAADPAQAAMAAAAEAAAAACAAAA2AEAAAAAAABleWVMb29rAAEAAwABAAMAAAAAAAAAAABjYW1lcmFQcm9qAKsBAAMAAQACAAAAAAAAAAAAc2NyZWVuU2l6ZQBleWUAaW52VlAAq6urAwADAAQABAAAAAAAAAAAAE1pY3Jvc29mdCAoUikgSExTTCBTaGFkZXIgQ29tcGlsZXIgMTAuMQBJU0dORAAAAAIAAAAIAAAAOAAAAAAAAAAAAAAAAwAAAAAAAAADAwAAOAAAAAEAAAAAAAAAAwAAAAEAAAAHBwAAVEVYQ09PUkQAq6urT1NHTiwAAAABAAAACAAAACAAAAAAAAAAAAAAAAMAAAAAAAAAAQ4AAFNWX1RhcmdldACrq1NIRFKACAAAQAAAACACAABZAAAERo4gAAAAAAAHAAAAWgAAAwBgEAAAAAAAWgAAAwBgEAABAAAAWBgABABwEAAAAAAAVVUAAFgYAAQAcBAAAQAAAFVVAABiEAADMhAQAAAAAABiEAADchAQAAEAAABlAAADEiAQAAAAAABoAAACBgAAAEgAAAvyABAAAAAAAEYQEAAAAAAARn4QAAAAAAAAYBAAAAAAAAFAAAAAAAAAMgAACRIAEAAAAAAACgAQAAAAAAABQAAAAAAAQAFAAAAAAIC:OQAAByIAEAAAAAAACgAQAAAAAAABQAAAAACAPx8ABAMaABAAAAAAAEgAAAvyABAAAQAAAEYQEAAAAAAARn4QAAEAAAAAYBAAAQAAAAFAAAAAAAAAAAAAC%IAEAAAAAAABgEQgMEAAAABAAAAAkAAAAAAAAAAAIA:AACAPwAAgD8AAAAIQgAQAAIAAAAaABCAwQAAAAEAAAAaABAAAAAAAB0AAAciABAAAAAAACoAEAACAAAAAUAAAAAAAAAdAAAKwgAQAAEAAAAGBBAAAQAAAAJAAAAAAAAAAAAAAAAAAAAAAAAANwAAD8IAEAABAAAApg4QAAEAAAACQAAAAAAAAAAAAAAAAIA:AACAPwJAAAAAAAAAAAAAAAAAgL8AAIC:OAAAB8IAEAAAAAAApg4QAAAAAACmDhAAAQAAADcAAAkyABAAAgAAAFYFEAAAAAAARgAQAAEAAADmChAAAAAAABAAAAciABAAAAAAAEYCEAACAAAARgIQAAIAAABEAAAFIgAQAAAAAAAaABAAAAAAADgAAAfiABAAAAAAAFYFEAAAAAAABgkQAAIAAAAQAAAHEgAQAAEAAABGEhAAAQAAAEYSEAABAAAARAAABRIAEAABAAAACgAQAAEAAAA4AAAHcgAQAAEAAAAGABAAAQAAAEYSEAABAAAAMgAACRIAEAAAAAAACgAQAAAAAAABQAAAAAAAPwFAAAAAAAA:AAAACRIAEAAAAAAACgAQAAAAAAAKgCCAQQAAAAAAAAABAAAADgAACBIAEAAAAAAAGoAgAAAAAAABAAAACgAQAAAAAAAQAAAIggAQAAEAAABGgiAAAAAAAAAAAABGAhAAAQAAAA4AAAcSABAAAAAAAAoAEAAAAAAAOgAQAAEAAAA4AAAHcgAQAAIAAAAGABAAAAAAAEYCEAABAAAAEAAAB4IAEAABAAAARgIQAAIAAABGAhAAAgAAAEsAAAWCABAAAQAAADoAEAABAAAAOAAABxIAEAACAAAAOgAQAAEAAAABQAAAAACgQTgAAAhiABAAAgAAAAYREAAAAAAAposgAAAAAAABAAAAGwAABWIAEAACAAAAVgYQAAIAAAAmAAAIANAAAIIAEAACAAAAGgAQAAIAAAABQAAAAwAAACMAAAkiABAAAgAAABoAEAACAAAAKgAQAAIAAAAqABAAAgAAAFcAAAciABAAAgAAABoAEAACAAAAOgAQAAIAAAAmAAAIANAAACIAEAACAAAAGgAQAAIAAAABQAAACgAAACsAAAUiABAAAgAAABoAEAACAAAANgAABYIAEAADAAAAAUAAAAAAgD82AAAIwgAQAAIAAAACQAAAAAAAAAAAAAAAAAAAAAAAADAAAAEhAAAHEgAQAAQAAAA6ABAAAgAAAAFAAAAIAAAAAwAEAwoAEAAEAAAAKwAABRIAEAAEAAAAOgAQAAIAAAAAAAAHEgAQAAQAAAAKABAABAAAAAFAAAAAAAA:MgAACRIAEAAEAAAACgAQAAQAAAABQAAA2w9JPxoAEAACAAAATQAABxIAEAAEAAAAEgAQAAUAAAAKABAABAAAADYAAAUiABAABQAAAAoAEAAEAAAADgAABzIAEAAEAAAARgAQAAUAAAAGABAAAgAAAAAAAAcyABAABAAAAEYAEAAEAAAARhAQAAAAAABIAAAL8gAQAAUAAABGABAABAAAAEZ%EAAAAAAAAGAQAAAAAAABQAAAAAAAADIAAAlCABAAAwAAAAoAEAAFAAAAAUAAAAAAAEABQAAAAACAvwAAAAhCABAABAAAABoAEIBBAAAABAAAAAFAAAAAAIA:MgAADzIAEAADAAAAhgAQAAQAAAACQAAAAAAAQAAAAEAAAAAAAAAAAAJAAAAAAIC:AACAvwAAAAAAAAAAEQAACBIAEAAEAAAARg4QAAMAAABGjiAAAAAAAAMAAAARAAAIIgAQAAQAAABGDhAAAwAAAEaOIAAAAAAABAAAABEAAAhCABAABAAAAEYOEAADAAAARo4gAAAAAAAFAAAAEQAACBIAEAADAAAARg4QAAMAAABGjiAAAAAAAAYAAAAOAAAHcgAQAAMAAABGAhAABAAAAAYAEAADAAAAAAAACXIAEAADAAAARgIQAAMAAABGgiCAQQAAAAAAAAACAAAAMgAACnIAEAADAAAARgIQgEEAAAABAAAABgAQAAAAAABGAhAAAwAAABAAAAcSABAABAAAAEYCEAADAAAAlgcQAAAAAAAyAAAKEgAQAAQAAAA6ABCAQQAAAAEAAAABQAAAbxIDOgoAEAAEAAAANAAABxIAEAAEAAAACgAQAAQAAAABQAAAAAAAABAAAAcSABAAAwAAAEYCEAADAAAARgIQAAMAAAAAAAAHEgAQAAMAAAAKABAAAwAAAAFAAACPwnU8DgAABxIAEAADAAAACgAQAAQAAAAKABAAAwAAAAAAAAdCABAAAgAAACoAEAACAAAACgAQAAMAAAAeAAAHggAQAAIAAAA6ABAAAgAAAAFAAAABAAAAFgAAATIAAAoSIBAAAAAAACoAEIBBAAAAAgAAAAFAAACamRk9AUAAAAAAgD8SAAABNgAABRIgEAAAAAAAAUAAAAAAgD8VAAABPgAAAVNUQVR0AAAARwAAAAYAAAAAAAAAAwAAAC0AAAAFAAAAAQAAAAIAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAAAAAAAQAAAACAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 kha_System.renderListeners = [];
 kha_System.foregroundListeners = [];
 kha_System.resumeListeners = [];

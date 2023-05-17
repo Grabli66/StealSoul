@@ -14,7 +14,7 @@ struct SPIRV_Cross_Output
 void frag_main()
 {
     float3 n = normalize(normal);
-    fragColor = float4(0.050876088440418243408203125f.xxx.x, 0.050876088440418243408203125f.xxx.y, 0.050876088440418243408203125f.xxx.z, fragColor.w);
+    fragColor = float4(0.0f.xxx.x, 0.0f.xxx.y, 0.0f.xxx.z, fragColor.w);
     fragColor.w = 0.0f;
 }
 

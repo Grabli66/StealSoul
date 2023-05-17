@@ -15,18 +15,10 @@
 -D C:/Workspace/armsdk/lib/haxebullet
 -D C:/Workspace/armsdk/lib/zui
 -D arm_deferred
--D arm_csm
+-D arm_clusters
 -D rp_hdr
 -D rp_renderer=Deferred
--D rp_shadowmap
--D rp_shadowmap_cascade=1024
--D rp_shadowmap_cube=512
 -D rp_background=World
--D rp_render_to_texture
--D rp_compositornodes
--D rp_antialiasing=SMAA
--D rp_supersampling=1
--D rp_ssgi=SSAO
 -D js-es=6
 -D arm_physics
 -D arm_bullet
@@ -61,16 +53,16 @@
 -D kha_version=1810
 -D kha_project_name=SteelSoul_1_0_2
 -js krom\krom.js.temp
-arm.PlayerController
---macro keep('arm.PlayerController')
 armory.trait.physics.bullet.RigidBody
 --macro keep('armory.trait.physics.bullet.RigidBody')
+arm.PlayerController
+--macro keep('arm.PlayerController')
 armory.trait.internal.UniformsManager
 --macro keep('armory.trait.internal.UniformsManager')
-armory.trait.internal.Bridge
---macro keep('armory.trait.internal.Bridge')
 armory.trait.physics.bullet.PhysicsWorld
 --macro keep('armory.trait.physics.bullet.PhysicsWorld')
+armory.trait.internal.Bridge
+--macro keep('armory.trait.internal.Bridge')
 armory.trait.internal.DebugConsole
 --macro keep('armory.trait.internal.DebugConsole')
 -main Main

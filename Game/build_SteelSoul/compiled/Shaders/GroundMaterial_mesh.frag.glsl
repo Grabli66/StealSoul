@@ -11,9 +11,9 @@ void main() {
 	float occlusion;
 	float specular;
 	vec3 emissionCol;
-	basecol = vec3(0.8000000715255737, 0.10836952924728394, 0.0677088052034378);
-	roughness = 0.19999998807907104;
-	metallic = 0.4363636374473572;
+	basecol = vec3(0.19598594307899475, 0.04001965746283531, 0.0034684150014072657);
+	roughness = 0.8277056217193604;
+	metallic = 0.051948051899671555;
 	occlusion = 1.0;
 	specular = 0.5;
 	emissionCol = vec3(0.0);
